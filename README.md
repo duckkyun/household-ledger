@@ -17,11 +17,44 @@
 
 ## 데이터 보관
 
-기록은 사용하는 **브라우저에만** 저장됩니다. 기기·브라우저를 바꾸면 보이지 않으니, 가끔 **JSON 백업**을 받아두세요. 다른 기기에서는 그 파일을 **JSON 복원**으로 불러오면 됩니다.
+기록은 기본적으로 사용하는 **브라우저에만** 저장됩니다. 기기·브라우저를 바꾸면 보이지 않으니, 가끔 **JSON 백업**을 받아두세요. 다른 기기에서는 그 파일을 **JSON 복원**으로 불러오면 됩니다. 여러 기기에서 **자동 동기화**하려면 아래 클라우드 동기화를 설정하세요.
+
+## ☁️ 클라우드 동기화 설정 (Firebase)
+
+구글 로그인으로 폰·PC에서 **같은 기록을 자동 동기화**합니다. 무료 플랜(Spark)으로 충분하고 신용카드도 필요 없어요. 설정은 한 번만 하면 됩니다.
+
+> 참고: `index.html`에 넣는 `firebaseConfig` 값(apiKey 등)은 **비밀이 아니며 공개 저장소에 올려도 안전**합니다. 실제 보안은 아래 Firestore 보안 규칙이 담당해요.
+
+1. [Firebase 콘솔](https://console.firebase.google.com) → **프로젝트 만들기** (이름 아무거나, 애널리틱스는 꺼도 됨)
+2. **빌드 → Authentication → 시작하기 → Sign-in method → Google 사용 설정 → 저장**
+3. **Authentication → Settings → 승인된 도메인(Authorized domains)** 에 `duckkyun.github.io` 추가 (`localhost`는 기본 포함)
+4. **빌드 → Firestore Database → 데이터베이스 만들기** → 위치는 `asia-northeast3`(서울) 등 → **프로덕션 모드**로 시작
+5. Firestore **규칙(Rules)** 탭에 아래를 붙여넣고 **게시(Publish)**:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /ledgers/{uid} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+   → 각 사용자는 **자기 uid 문서만** 읽고 쓸 수 있어, 남의 기록엔 접근 불가.
+6. **프로젝트 설정(⚙️) → 일반 → 내 앱 → 웹앱 추가(`</>`)** → 앱 등록 → 나오는 `firebaseConfig` 복사
+7. `index.html` 안의 `firebaseConfig`(하단 `<script type="module">`)에 `apiKey / authDomain / projectId / appId` 값을 붙여넣고 커밋 → 끝
+
+설정 전에는 동기화 패널이 "설정 필요"로 표시되고 앱은 **로컬(localStorage) 전용**으로 정상 동작합니다.
+
+### 동작 방식
+
+- **로그아웃** = localStorage에만 저장(기존과 동일).
+- **로그인** = Firestore 문서 `ledgers/{uid}` 에 전체 기록을 저장하고 `onSnapshot`으로 실시간 동기화. 오프라인 쓰기는 Firestore 영속 캐시에 큐잉됐다가 온라인 시 반영.
+- **첫 로그인** 시 이 기기의 로컬 기록과 클라우드 기록을 `id` 기준으로 병합(이 기기에만 있는 기록이 있으면 합칠지 물어봄).
 
 ## 파일
 
-- `index.html` — 앱 전체 (외부 의존성 없음, 오프라인 동작)
+- `index.html` — 앱 전체. 통계·UI는 외부 의존성 없이 동작하고, 클라우드 동기화만 Firebase SDK(CDN, ESM 모듈)를 사용.
 
 ## 개발 기록 (시행착오)
 
@@ -66,6 +99,15 @@
 - **테마 토글**: 원래 `prefers-color-scheme`로 시스템 설정을 따랐는데, 사용자가 직접 on/off 하고 싶어 함. → `html[data-theme]` 속성으로 색 변수를 덮어써서(속성 선택자가 `:root`보다 우선) **수동 선택이 시스템 설정을 이기게** 함. 선택은 localStorage 저장, `<head>`에 초기 적용 스크립트를 넣어 로드 시 **깜빡임 방지**.
 - **기록 수정**: 내역 항목을 누르면 그 값(구분·날짜·금액·메모·분류)이 폼에 채워지고, 저장하면 새로 추가하지 않고 **그 기록을 제자리 수정**. `editingId` 상태로 추가/수정을 분기. 삭제(✕)는 `stopPropagation`으로 수정 클릭과 충돌 방지, 수정 중이던 항목을 지우면 폼도 초기화.
 
+### 9. 폰↔PC 자동 동기화 (Firebase 도입)
+
+- localStorage는 **기기마다 따로**라 폰과 맥북이 다르게 보이는 게 근본 한계. 사용자가 이를 정확히 짚어서, 구글 로그인 + Firestore로 **자동 동기화**를 붙임(혼자 사용, 무료 Spark 플랜).
+- **비침습적 설계**: 기존 IIFE는 그대로 두고 `window.LedgerApp`(getData/setData/toast) 훅만 노출. Firebase는 별도 `<script type="module">`에서 `window.CloudSync`를 등록하고, 앱의 `save()`가 로그인 상태면 클라우드에도 push. → 로컬 전용 동작을 하나도 깨지 않고 동기화를 얹음.
+- **미설정 시 우아하게 실패**: `firebaseConfig`가 placeholder면 SDK를 초기화하지 않고 버튼을 "설정 필요"로 비활성화. 앱은 로컬로 정상 동작 → 설정 전이라도 라이브 사이트가 안 깨짐.
+- **데이터 모델**: 기록 전체를 문서 하나(`ledgers/{uid}.entries`)에 저장 — 기존 "배열 통째로 save" 패턴과 그대로 맞아 코드가 단순. 단, 문서 1MB 제한(대략 수천 건)이 있어 아주 오래 쓰면 문서-per-기록 구조로 이전 필요.
+- **병합/삭제 함정**: 매 시작마다 로컬∪클라우드로 합치면 **삭제한 기록이 되살아남**. 그래서 "클라우드가 진실"로 두고, 로컬에만 있는 기록이 있을 때만 합칠지 물어보게 함.
+- **CDN 버전 확인**: `gstatic` Firebase SDK URL은 버전이 틀리면 404 → 커밋 전 `curl`로 `10.14.1` 존재를 확인.
+
 ### 배운 점 요약
 
 - 데이터가 브라우저에만 있는 구조는 **백업 기능이 필수**.
@@ -75,3 +117,6 @@
 - `type="number"`는 콤마 표시가 안 됨 — 포맷이 필요하면 `type="text"`+`inputmode="numeric"`.
 - 수동 테마는 `html[data-theme]` 속성 + localStorage, `<head>` 초기 스크립트로 깜빡임 방지.
 - 리스트 항목에 클릭 액션을 여러 개 얹을 땐(수정 vs 삭제) `stopPropagation`으로 분리.
+- 기존 코드에 외부 연동을 얹을 땐 얇은 훅(`window.LedgerApp`)만 노출하고 연동부를 분리 — 기존 동작을 안 깨뜨림.
+- 클라우드 동기화에서 "배열 통째로 병합"은 삭제 되살아남 문제가 있음 → 진실의 원천을 한쪽으로 정하기.
+- Firebase 웹 config(apiKey 등)는 비밀이 아님. 보안은 Firestore 규칙으로.

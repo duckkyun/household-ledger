@@ -110,6 +110,12 @@
   .tools{display:flex; flex-wrap:wrap; gap:8px}
   .tools button, .tools label{border:1px solid var(--line); background:var(--panel-2); color:var(--text); padding:9px 13px; border-radius:11px; cursor:pointer; font-size:13px; font-weight:600}
   .tools .danger:hover{background:var(--expense);color:#fff;border-color:var(--expense)}
+  .sync-panel{padding:14px 16px}
+  .sync-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .sync-title{font-weight:700;font-size:14px}
+  .sync-sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .btn-auth{border:0; background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff; padding:10px 16px; border-radius:11px; font-weight:700; font-size:13.5px; cursor:pointer; white-space:nowrap}
+  .btn-auth:disabled{opacity:.6; cursor:not-allowed; background:var(--panel-2); color:var(--muted); box-shadow:inset 0 0 0 1px var(--line)}
   footer{color:var(--muted);text-align:center;font-size:12px;margin-top:8px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -128,6 +134,16 @@
       <button id="themeToggle" class="icon-btn" title="라이트/다크 모드 전환">🌙</button>
     </div>
   </header>
+
+  <section class="panel sync-panel">
+    <div class="sync-row">
+      <div class="sync-info">
+        <div class="sync-title">☁️ 클라우드 동기화</div>
+        <div class="sync-sub" id="syncSub">로그인하면 폰·PC에서 같은 기록을 봐요</div>
+      </div>
+      <button id="authBtn" class="btn-auth">구글 로그인</button>
+    </div>
+  </section>
 
   <section class="cards">
     <div class="card inc"><div class="k">수입</div><div class="v" id="sumIncome">₩0</div></div>
@@ -211,7 +227,10 @@
     arr.forEach(r=>{ if(!Array.isArray(r.cats)) r.cats = r.cat ? [r.cat] : ["기타"]; }); // 예전 단일 분류 호환
     return arr;
   }
-  function save(){ localStorage.setItem(KEY, JSON.stringify(data)); }
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify(data));
+    if(window.CloudSync && window.CloudSync.active) window.CloudSync.push(data); // 로그인 시 클라우드에도 반영
+  }
   function firstOfThisMonth(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
   function won(n){ return "₩" + Math.round(n).toLocaleString("ko-KR"); }
   function ymd(d){ const p=x=>String(x).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
@@ -472,8 +491,118 @@
     paintThemeIcon();
   };
 
+  // 클라우드 동기화 레이어(모듈 스크립트)에서 호출하는 훅
+  window.LedgerApp = {
+    getData(){ return data.slice(); },
+    setData(entries){
+      data = Array.isArray(entries) ? entries : [];
+      localStorage.setItem(KEY, JSON.stringify(data));
+      if(editingId && !data.some(r=>r.id===editingId)) resetForm(); // 편집 중이던 항목이 원격에서 사라졌으면 폼 정리
+      renderAll();
+    },
+    toast(msg){ toast(msg); }
+  };
+
   renderAll();
 })();
+</script>
+
+<!-- ☁️ 클라우드 동기화 (Firebase) — 아래 firebaseConfig에 본인 프로젝트 값을 붙여넣으면 활성화됩니다 -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+           setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import { initializeFirestore, getFirestore, persistentLocalCache, persistentSingleTabManager,
+           doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+  // ↓↓↓ Firebase 콘솔에서 만든 웹앱 설정값으로 교체하세요 (공개 저장소에 올려도 안전한 값입니다) ↓↓↓
+  const firebaseConfig = {
+    apiKey: "PASTE_API_KEY",
+    authDomain: "PASTE_PROJECT.firebaseapp.com",
+    projectId: "PASTE_PROJECT_ID",
+    appId: "PASTE_APP_ID"
+  };
+  // ↑↑↑ 여기까지 교체 ↑↑↑
+
+  const App = window.LedgerApp;
+  const authBtn = document.getElementById("authBtn");
+  const syncSub = document.getElementById("syncSub");
+  const setSub = (t)=>{ syncSub.textContent = t; };
+  const configured = firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf("PASTE") !== 0;
+
+  if(!configured){
+    setSub("설정 필요 · README의 'Firebase 설정' 참고 (지금은 이 기기에만 저장)");
+    authBtn.textContent = "설정 필요";
+    authBtn.disabled = true;
+  } else {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    let db;
+    try {
+      db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }) });
+    } catch(e){ db = getFirestore(app); }
+
+    let userDocRef = null, unsub = null;
+    window.CloudSync = {
+      get active(){ return !!userDocRef; },
+      async push(entries){
+        if(!userDocRef) return;
+        try { await setDoc(userDocRef, { entries, updatedAt: Date.now() }); }
+        catch(e){ App.toast("동기화 오류 (오프라인이면 자동 재시도)"); }
+      }
+    };
+
+    setPersistence(auth, browserLocalPersistence).catch(()=>{});
+
+    authBtn.onclick = async () => {
+      if(auth.currentUser){
+        if(confirm("로그아웃할까요? 이 기기에는 마지막 기록이 그대로 남아있어요.")) await signOut(auth);
+      } else {
+        try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+        catch(e){ App.toast("로그인이 취소됐어요"); }
+      }
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if(unsub){ unsub(); unsub = null; }
+      if(user){
+        userDocRef = doc(db, "ledgers", user.uid);
+        authBtn.textContent = "로그아웃";
+        authBtn.disabled = false;
+        setSub("☁️ 동기화 중 · " + (user.email || user.displayName || "로그인됨"));
+        try {
+          const snap = await getDoc(userDocRef);
+          if(snap.exists() && Array.isArray(snap.data().entries)){
+            const cloud = snap.data().entries;
+            const cloudIds = new Set(cloud.map(e=>e.id));
+            const extra = App.getData().filter(e=> e && !cloudIds.has(e.id)); // 이 기기에만 있는 기록
+            if(extra.length && confirm(`이 기기에만 있는 기록 ${extra.length}건을 클라우드에 합칠까요?\n확인=합치기 / 취소=클라우드 기록만 사용`)){
+              const merged = cloud.concat(extra);
+              await setDoc(userDocRef, { entries: merged, updatedAt: Date.now() });
+              App.setData(merged);
+            } else {
+              App.setData(cloud);
+            }
+          } else {
+            // 최초 로그인: 이 기기의 기존 기록을 클라우드로 올림
+            const local = App.getData();
+            await setDoc(userDocRef, { entries: local, updatedAt: Date.now() });
+            App.setData(local);
+          }
+        } catch(e){ App.toast("클라우드 불러오기 실패"); }
+        // 실시간 구독: 다른 기기의 변경이 자동 반영됨
+        unsub = onSnapshot(userDocRef, (d)=>{
+          const e = (d.exists() && Array.isArray(d.data().entries)) ? d.data().entries : [];
+          App.setData(e);
+        });
+      } else {
+        userDocRef = null;
+        authBtn.textContent = "구글 로그인";
+        authBtn.disabled = false;
+        setSub("로그인하면 폰·PC에서 같은 기록을 봐요");
+      }
+    });
+  }
 </script>
 </body>
 </html>
