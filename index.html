@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#4f46e5" />
 <title>가계부</title>
+<script>/* 로드 직후 저장된 테마 적용 → 깜빡임 방지 */try{var _t=localStorage.getItem("household-ledger-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <style>
   :root{
     --bg:#0f1117; --panel:#171a23; --panel-2:#1f2430; --line:#2a3040;
@@ -18,6 +19,15 @@
       --text:#1b1f2a; --muted:#6b7280; --shadow:0 8px 30px rgba(20,24,40,.08);
     }
   }
+  /* 토글로 수동 지정하면 시스템 설정보다 우선 */
+  html[data-theme="dark"]{
+    --bg:#0f1117; --panel:#171a23; --panel-2:#1f2430; --line:#2a3040;
+    --text:#e7e9ee; --muted:#9aa3b2; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  html[data-theme="light"]{
+    --bg:#f4f5f8; --panel:#ffffff; --panel-2:#f7f8fb; --line:#e6e8ef;
+    --text:#1b1f2a; --muted:#6b7280; --shadow:0 8px 30px rgba(20,24,40,.08);
+  }
   *{box-sizing:border-box}
   body{
     margin:0; background:var(--bg); color:var(--text);
@@ -25,9 +35,11 @@
     -webkit-font-smoothing:antialiased; line-height:1.5;
   }
   .wrap{max-width:760px; margin:0 auto; padding:16px 16px 96px;}
-  header.top{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 2px 16px;}
+  header.top{display:flex; align-items:center; justify-content:space-between; gap:12px; row-gap:10px; flex-wrap:wrap; padding:8px 2px 16px;}
   .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:-.02em;}
   .brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-size:15px}
+  .hgroup{display:flex; align-items:center; gap:8px;}
+  .icon-btn{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:15px;line-height:1}
   .month-nav{display:flex; align-items:center; gap:6px;}
   .month-nav button{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px}
   .month-nav .label{min-width:104px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
@@ -58,15 +70,19 @@
   .chips{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px}
   .chip{border:1px solid var(--line); background:var(--panel-2); color:var(--text); padding:7px 11px; border-radius:999px; cursor:pointer; font-size:13px; font-weight:600}
   .chip.active{background:var(--brand); border-color:var(--brand); color:#fff}
-  .btn-add{width:100%; border:0; background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff; padding:13px; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer}
+  .form-actions{display:flex; gap:8px}
+  .btn-add{flex:1; border:0; background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff; padding:13px; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer}
+  .btn-cancel{border:1px solid var(--line); background:var(--panel-2); color:var(--muted); padding:13px 18px; border-radius:12px; font-weight:700; font-size:14px; cursor:pointer}
+  .editing-banner{background:var(--panel-2); border:1px dashed var(--brand); color:var(--muted); border-radius:11px; padding:8px 12px; font-size:12.5px; margin-bottom:10px}
 
   /* list */
   .daygroup{margin-bottom:14px}
   .daygroup .dh{display:flex; justify-content:space-between; align-items:baseline; padding:0 2px 6px; border-bottom:1px dashed var(--line); margin-bottom:6px}
   .daygroup .dh .d{font-weight:700;font-size:13px}
   .daygroup .dh .s{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-  .item{display:flex; align-items:center; gap:12px; padding:9px 4px; border-radius:10px}
+  .item{display:flex; align-items:center; gap:12px; padding:9px 4px; border-radius:10px; cursor:pointer}
   .item:hover{background:var(--panel-2)}
+  .item.editing{background:var(--panel-2); box-shadow:inset 0 0 0 1.5px var(--brand)}
   .item .emoji{width:34px;height:34px;border-radius:10px;background:var(--panel-2);display:grid;place-items:center;font-size:17px;flex:none}
   .item .meta{flex:1;min-width:0}
   .item .meta .c{font-weight:600;font-size:14px}
@@ -103,10 +119,13 @@
 <div class="wrap">
   <header class="top">
     <div class="brand"><span class="dot">₩</span> 가계부</div>
-    <div class="month-nav">
-      <button id="prevM" title="이전 달">‹</button>
-      <div class="label" id="monthLabel">—</div>
-      <button id="nextM" title="다음 달">›</button>
+    <div class="hgroup">
+      <div class="month-nav">
+        <button id="prevM" title="이전 달">‹</button>
+        <div class="label" id="monthLabel">—</div>
+        <button id="nextM" title="다음 달">›</button>
+      </div>
+      <button id="themeToggle" class="icon-btn" title="라이트/다크 모드 전환">🌙</button>
     </div>
   </header>
 
@@ -117,7 +136,8 @@
   </section>
 
   <section class="panel">
-    <h2>✏️ 새 기록 <span class="sub">분류는 여러 개 선택 가능</span></h2>
+    <h2 id="formTitle">✏️ 새 기록 <span class="sub">분류는 여러 개 선택 가능 · 내역을 누르면 수정</span></h2>
+    <div class="editing-banner" id="editBanner" hidden>✏️ 기존 기록을 수정 중입니다. 값을 바꾸고 <b>수정 완료</b>를 누르세요.</div>
     <div class="seg" id="typeSeg">
       <button data-t="expense" class="active">지출</button>
       <button data-t="income">수입</button>
@@ -130,7 +150,10 @@
     <div class="row" style="grid-template-columns:1fr">
       <input type="text" id="fMemo" placeholder="메모 (선택) — 예: 점심, 스타벅스" maxlength="60" />
     </div>
-    <button class="btn-add" id="addBtn">추가하기</button>
+    <div class="form-actions">
+      <button class="btn-add" id="addBtn">추가하기</button>
+      <button class="btn-cancel" id="cancelBtn" hidden>취소</button>
+    </div>
   </section>
 
   <section class="panel">
@@ -180,6 +203,7 @@
   let curType = "expense";
   let curCats = new Set([CATS.expense[0][0]]);
   let view = firstOfThisMonth();
+  let editingId = null; // null이면 새 기록 추가, 값이 있으면 그 기록을 수정 중
 
   // ---- helpers ----
   function load(){
@@ -243,14 +267,16 @@
       const parts=[]; if(dayExp) parts.push("지출 "+won(dayExp)); if(dayInc) parts.push("수입 "+won(dayInc));
       g.innerHTML=`<div class="dh"><span class="d">${dObj.getMonth()+1}/${dObj.getDate()} (${wd})</span><span class="s">${parts.join(" · ")}</span></div>`;
       items.forEach(r=>{
-        const el=document.createElement("div"); el.className="item";
+        const el=document.createElement("div"); el.className="item"+(r.id===editingId?" editing":"");
+        el.title="눌러서 수정";
         const catLabel=r.cats.map(c=>`${EMO[c]||"📦"} ${escapeHtml(c)}`).join(" · ");
         el.innerHTML=`
           <div class="emoji">${EMO[r.cats[0]]||"📦"}</div>
           <div class="meta"><div class="c">${catLabel}</div>${r.memo?`<div class="m">${escapeHtml(r.memo)}</div>`:""}</div>
           <div class="amt ${r.type}">${r.type==="income"?"+":"-"}${won(r.amount)}</div>
           <button class="del" title="삭제">✕</button>`;
-        el.querySelector(".del").onclick=()=>{ del(r.id); };
+        el.querySelector(".del").onclick=(e)=>{ e.stopPropagation(); del(r.id); };
+        el.onclick=()=>{ startEdit(r); }; // 아이템(아이콘 포함) 아무 곳이나 누르면 수정
         g.appendChild(el);
       });
       box.appendChild(g);
@@ -318,16 +344,49 @@
     if(!amt || amt<=0){ toast("금액을 올바르게 입력하세요"); return; }
     const cats=Array.from(curCats);
     if(!cats.length){ toast("분류를 하나 이상 선택하세요"); return; }
-    data.push({ id:uid(), type:curType, cats, amount:amt, memo, date, created:Date.now() });
+    if(editingId){
+      const rec=data.find(r=>r.id===editingId);
+      if(rec){ rec.type=curType; rec.cats=cats; rec.amount=amt; rec.memo=memo; rec.date=date; }
+      toast("수정됨 · "+won(amt));
+    } else {
+      data.push({ id:uid(), type:curType, cats, amount:amt, memo, date, created:Date.now() });
+      toast("기록됨 · "+won(amt));
+    }
     save();
-    document.getElementById("fAmount").value="";
-    document.getElementById("fMemo").value="";
-    // jump view to the record's month so it shows up
+    resetForm();
+    // 기록(또는 수정)한 달로 이동해 바로 보이게
     view=new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1);
     renderAll();
-    toast("기록됨 · "+won(amt));
+  }
+  function startEdit(rec){
+    editingId=rec.id;
+    curType=rec.type;
+    document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x.dataset.t===curType));
+    curCats=new Set(rec.cats);
+    renderChips();
+    document.getElementById("fDate").value=rec.date;
+    document.getElementById("fAmount").value=Number(rec.amount).toLocaleString("ko-KR");
+    document.getElementById("fMemo").value=rec.memo||"";
+    document.getElementById("addBtn").textContent="수정 완료";
+    document.getElementById("cancelBtn").hidden=false;
+    document.getElementById("editBanner").hidden=false;
+    renderList(); // 편집 중 항목 강조
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  function resetForm(){
+    editingId=null;
+    curType="expense";
+    document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x.dataset.t==="expense"));
+    curCats=new Set([CATS.expense[0][0]]);
+    renderChips();
+    document.getElementById("fAmount").value="";
+    document.getElementById("fMemo").value="";
+    document.getElementById("addBtn").textContent="추가하기";
+    document.getElementById("cancelBtn").hidden=true;
+    document.getElementById("editBanner").hidden=true;
   }
   function del(id){
+    if(id===editingId) resetForm(); // 수정 중이던 항목을 지우면 폼도 초기화
     data=data.filter(r=>r.id!==id); save(); renderAll();
   }
 
@@ -395,6 +454,22 @@
   document.getElementById("impJson").addEventListener("change",e=>{ if(e.target.files[0]) impJson(e.target.files[0]); e.target.value=""; });
   document.getElementById("clearAll").onclick=()=>{
     if(confirm("모든 기록을 삭제할까요? 되돌릴 수 없습니다.\n먼저 JSON 백업을 권장해요.")){ data=[]; save(); renderAll(); toast("전체 삭제됨"); }
+  };
+  document.getElementById("cancelBtn").onclick=resetForm;
+
+  // ---- 테마(라이트/다크) 토글 ----
+  const THEME_KEY="household-ledger-theme";
+  function effectiveTheme(){
+    return document.documentElement.getAttribute("data-theme")
+      || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  }
+  function paintThemeIcon(){ document.getElementById("themeToggle").textContent = effectiveTheme()==="dark" ? "☀️" : "🌙"; }
+  paintThemeIcon();
+  document.getElementById("themeToggle").onclick=()=>{
+    const next = effectiveTheme()==="dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+    paintThemeIcon();
   };
 
   renderAll();
