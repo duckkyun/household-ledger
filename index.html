@@ -518,8 +518,8 @@
 <!-- ☁️ 클라우드 동기화 (Firebase) — 아래 firebaseConfig에 본인 프로젝트 값을 붙여넣으면 활성화됩니다 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-           setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+           signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import { initializeFirestore, getFirestore, persistentLocalCache, persistentSingleTabManager,
            doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
@@ -563,13 +563,23 @@
     };
 
     setPersistence(auth, browserLocalPersistence).catch(()=>{});
+    // 홈 화면 앱(iOS standalone)에서는 팝업이 안 뜨므로 리다이렉트 로그인 사용
+    const isStandalone = (window.navigator.standalone === true) ||
+      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    getRedirectResult(auth).catch(()=>{}); // 리다이렉트 로그인 복귀 처리
 
     authBtn.onclick = async () => {
       if(auth.currentUser){
         if(confirm("로그아웃할까요? 이 기기에는 마지막 기록이 그대로 남아있어요.")) await signOut(auth);
       } else {
-        try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-        catch(e){ App.toast("로그인이 취소됐어요"); }
+        const provider = new GoogleAuthProvider();
+        try {
+          if(isStandalone){ await signInWithRedirect(auth, provider); }
+          else { await signInWithPopup(auth, provider); }
+        } catch(e){
+          try { await signInWithRedirect(auth, provider); } // 팝업 실패 시 리다이렉트로 폴백
+          catch(e2){ App.toast("로그인 실패 — 잠시 후 다시"); }
+        }
       }
     };
 
