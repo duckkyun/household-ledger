@@ -50,7 +50,7 @@
   .seg button{flex:1; border:0; background:transparent; color:var(--muted); padding:9px; border-radius:9px; font-weight:700; cursor:pointer}
   .seg button.active[data-t="expense"]{background:var(--expense); color:#fff}
   .seg button.active[data-t="income"]{background:var(--income); color:#04241a}
-  .row{display:grid; grid-template-columns:130px 1fr; gap:10px; margin-bottom:10px}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px}
   @media (max-width:560px){ .row{grid-template-columns:1fr} }
   input,select,textarea{width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:11px 12px; font-size:15px; outline:none}
   input:focus,select:focus,textarea:focus{border-color:var(--brand)}
@@ -124,7 +124,7 @@
     </div>
     <div class="row">
       <input type="date" id="fDate" />
-      <input type="number" id="fAmount" inputmode="numeric" placeholder="금액 (원)" min="0" />
+      <input type="text" id="fAmount" inputmode="numeric" autocomplete="off" placeholder="금액 (원)" />
     </div>
     <div class="chips" id="catChips"></div>
     <div class="row" style="grid-template-columns:1fr">
@@ -311,7 +311,7 @@
 
   // ---- actions ----
   function add(){
-    const amt=Math.round(Number(document.getElementById("fAmount").value));
+    const amt=Math.round(Number(document.getElementById("fAmount").value.replace(/[^\d]/g,"")));
     const date=document.getElementById("fDate").value;
     const memo=document.getElementById("fMemo").value.trim();
     if(!date){ toast("날짜를 선택하세요"); return; }
@@ -382,7 +382,12 @@
   });
   document.getElementById("addBtn").onclick=add;
   document.getElementById("fMemo").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
-  document.getElementById("fAmount").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
+  const fAmount=document.getElementById("fAmount");
+  fAmount.addEventListener("input",()=>{ // 입력하는 대로 천 단위 콤마
+    const digits=fAmount.value.replace(/[^\d]/g,"");
+    fAmount.value = digits ? Number(digits).toLocaleString("ko-KR") : "";
+  });
+  fAmount.addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
   document.getElementById("prevM").onclick=()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); renderAll(); };
   document.getElementById("nextM").onclick=()=>{ view=new Date(view.getFullYear(),view.getMonth()+1,1); renderAll(); };
   document.getElementById("expJson").onclick=expJson;
