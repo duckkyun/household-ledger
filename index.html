@@ -117,7 +117,7 @@
   </section>
 
   <section class="panel">
-    <h2>✏️ 새 기록</h2>
+    <h2>✏️ 새 기록 <span class="sub">분류는 여러 개 선택 가능</span></h2>
     <div class="seg" id="typeSeg">
       <button data-t="expense" class="active">지출</button>
       <button data-t="income">수입</button>
@@ -168,21 +168,25 @@
   const CATS = {
     expense: [
       ["식비","🍚"],["카페/간식","☕"],["교통","🚌"],["생활/마트","🛒"],
-      ["주거/통신","🏠"],["문화/여가","🎬"],["의료/건강","💊"],["교육","📚"],
-      ["패션/미용","👕"],["경조사","🎁"],["기타","📦"]
+      ["주거/통신","🏠"],["문화/여가","🎬"],["쏘","❤️"],["의료/건강","💊"],
+      ["교육","📚"],["패션/미용","👕"],["경조사","🎁"],["기타","📦"]
     ],
-    income: [ ["급여","💰"],["용돈","🧧"],["금융/이자","🏦"],["기타수입","➕"] ]
+    income: [ ["급여","💰"],["용돈","🧧"],["쏘","❤️"],["금융/이자","🏦"],["기타수입","➕"] ]
   };
   const EMO = {}; [...CATS.expense, ...CATS.income].forEach(([c,e])=>EMO[c]=e);
 
   // ---- state ----
   let data = load();
   let curType = "expense";
-  let curCat = CATS.expense[0][0];
+  let curCats = new Set([CATS.expense[0][0]]);
   let view = firstOfThisMonth();
 
   // ---- helpers ----
-  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+  function load(){
+    let arr; try{ arr = JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ arr = []; }
+    arr.forEach(r=>{ if(!Array.isArray(r.cats)) r.cats = r.cat ? [r.cat] : ["기타"]; }); // 예전 단일 분류 호환
+    return arr;
+  }
   function save(){ localStorage.setItem(KEY, JSON.stringify(data)); }
   function firstOfThisMonth(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
   function won(n){ return "₩" + Math.round(n).toLocaleString("ko-KR"); }
@@ -203,9 +207,9 @@
     const box=document.getElementById("catChips"); box.innerHTML="";
     CATS[curType].forEach(([c,e])=>{
       const b=document.createElement("button");
-      b.className="chip"+(c===curCat?" active":"");
+      b.className="chip"+(curCats.has(c)?" active":"");
       b.innerHTML=`<span>${e}</span> ${c}`;
-      b.onclick=()=>{ curCat=c; renderChips(); };
+      b.onclick=()=>{ curCats.has(c)?curCats.delete(c):curCats.add(c); renderChips(); };
       box.appendChild(b);
     });
   }
@@ -240,9 +244,10 @@
       g.innerHTML=`<div class="dh"><span class="d">${dObj.getMonth()+1}/${dObj.getDate()} (${wd})</span><span class="s">${parts.join(" · ")}</span></div>`;
       items.forEach(r=>{
         const el=document.createElement("div"); el.className="item";
+        const catLabel=r.cats.map(c=>`${EMO[c]||"📦"} ${escapeHtml(c)}`).join(" · ");
         el.innerHTML=`
-          <div class="emoji">${EMO[r.cat]||"📦"}</div>
-          <div class="meta"><div class="c">${escapeHtml(r.cat)}</div>${r.memo?`<div class="m">${escapeHtml(r.memo)}</div>`:""}</div>
+          <div class="emoji">${EMO[r.cats[0]]||"📦"}</div>
+          <div class="meta"><div class="c">${catLabel}</div>${r.memo?`<div class="m">${escapeHtml(r.memo)}</div>`:""}</div>
           <div class="amt ${r.type}">${r.type==="income"?"+":"-"}${won(r.amount)}</div>
           <button class="del" title="삭제">✕</button>`;
         el.querySelector(".del").onclick=()=>{ del(r.id); };
@@ -255,7 +260,9 @@
   function renderStats(){
     const box=document.getElementById("stats");
     const map={}; let total=0;
-    data.forEach(r=>{ if(inView(r)&&r.type==="expense"){ map[r.cat]=(map[r.cat]||0)+r.amount; total+=r.amount; } });
+    // 분류가 여러 개면 각 분류에 전체 금액을 반영(중복 집계) → 데이트에 얼마 썼나 등을 볼 수 있게.
+    // total은 기록당 1회만 더해 실제 월 지출과 일치. 그래서 분류 비율 합이 100%를 넘을 수 있음.
+    data.forEach(r=>{ if(inView(r)&&r.type==="expense"){ r.cats.forEach(c=>{ map[c]=(map[c]||0)+r.amount; }); total+=r.amount; } });
     document.getElementById("statTotal").textContent = total? "합계 "+won(total):"";
     const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
     if(!rows.length){ box.innerHTML='<div class="empty">이번 달 지출이 없어요.</div>'; return; }
@@ -309,7 +316,9 @@
     const memo=document.getElementById("fMemo").value.trim();
     if(!date){ toast("날짜를 선택하세요"); return; }
     if(!amt || amt<=0){ toast("금액을 올바르게 입력하세요"); return; }
-    data.push({ id:uid(), type:curType, cat:curCat, amount:amt, memo, date, created:Date.now() });
+    const cats=Array.from(curCats);
+    if(!cats.length){ toast("분류를 하나 이상 선택하세요"); return; }
+    data.push({ id:uid(), type:curType, cats, amount:amt, memo, date, created:Date.now() });
     save();
     document.getElementById("fAmount").value="";
     document.getElementById("fMemo").value="";
@@ -333,7 +342,7 @@
     const head=["날짜","구분","분류","금액","메모"];
     const lines=[head.join(",")];
     data.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>{
-      const cells=[r.date, r.type==="income"?"수입":"지출", r.cat, r.amount, r.memo||""]
+      const cells=[r.date, r.type==="income"?"수입":"지출", r.cats.join(" / "), r.amount, r.memo||""]
         .map(v=>{ v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; });
       lines.push(cells.join(","));
     });
@@ -348,7 +357,8 @@
         if(!Array.isArray(arr)) throw 0;
         const clean=arr.filter(r=>r&&r.date&&r.amount!=null).map(r=>({
           id:r.id||uid(), type:r.type==="income"?"income":"expense",
-          cat:r.cat||"기타", amount:Math.round(Number(r.amount))||0,
+          cats: Array.isArray(r.cats)&&r.cats.length ? r.cats : [r.cat||"기타"],
+          amount:Math.round(Number(r.amount))||0,
           memo:r.memo||"", date:String(r.date).slice(0,10), created:r.created||Date.now()
         }));
         if(confirm(`${clean.length}건을 불러옵니다.\n확인=기존에 합치기 / 취소=중단`)){
@@ -367,7 +377,7 @@
     b.onclick=()=>{
       curType=b.dataset.t;
       document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));
-      curCat=CATS[curType][0][0]; renderChips();
+      curCats=new Set([CATS[curType][0][0]]); renderChips();
     };
   });
   document.getElementById("addBtn").onclick=add;
