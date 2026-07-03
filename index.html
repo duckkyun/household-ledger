@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#4f46e5" />
 <title>가계부</title>
+<!-- PWA (iPhone '홈 화면에 추가' 시 앱처럼 동작) -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="가계부" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" type="image/png" href="icon-192.png" />
 <script>/* 로드 직후 저장된 테마 적용 → 깜빡임 방지 */try{var _t=localStorage.getItem("household-ledger-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <style>
   :root{
@@ -603,6 +611,15 @@
         authBtn.disabled = false;
         setSub("로그인하면 폰·PC에서 같은 기록을 봐요");
       }
+    });
+  }
+</script>
+
+<!-- 서비스 워커 등록 (오프라인 실행) -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
     });
   }
 </script>
