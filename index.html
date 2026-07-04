@@ -305,7 +305,11 @@
           <div class="meta"><div class="c">${catLabel}</div>${r.memo?`<div class="m">${escapeHtml(r.memo)}</div>`:""}</div>
           <div class="amt ${r.type}">${r.type==="income"?"+":"-"}${won(r.amount)}</div>
           <button class="del" title="삭제">✕</button>`;
-        el.querySelector(".del").onclick=(e)=>{ e.stopPropagation(); del(r.id); };
+        el.querySelector(".del").onclick=(e)=>{
+          e.stopPropagation();
+          const desc=`${r.date} · ${r.type==="income"?"수입":"지출"} ${won(r.amount)} · ${r.cats.join(", ")}${r.memo?` (${r.memo})`:""}`;
+          if(confirm(`이 기록을 정말 삭제할까요?\n${desc}`)) del(r.id);
+        };
         el.onclick=()=>{ startEdit(r); }; // 아이템(아이콘 포함) 아무 곳이나 누르면 수정
         g.appendChild(el);
       });
@@ -417,7 +421,7 @@
   }
   function del(id){
     if(id===editingId) resetForm(); // 수정 중이던 항목을 지우면 폼도 초기화
-    data=data.filter(r=>r.id!==id); save(); renderAll();
+    data=data.filter(r=>r.id!==id); save(); renderAll(); toast("삭제됨");
   }
 
   // ---- export / import ----
