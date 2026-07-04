@@ -225,7 +225,7 @@
       <button id="openTrash2">🗑 휴지통</button>
       <button id="clearAll" class="danger">전체 삭제</button>
     </div>
-    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v4</b></footer>
+    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v5</b></footer>
   </section>
   </div><!-- /mainView -->
 
@@ -256,9 +256,11 @@
       ["의료/건강","💊"],["교육","📚"],["패션/미용","👕"],["경조사","🎁"],
       ["교통","🚌"],["쏘","❤️"],["기타","📦"]
     ],
-    income: [ ["급여","💰"],["용돈","🧧"],["쏘","❤️"],["금융/이자","🏦"],["기타수입","➕"] ]
+    income: [ ["급여","💰"],["용돈","🧧"],["식비","🍚"],["쏘","❤️"],["금융/이자","🏦"],["기타수입","➕"] ]
   };
   const EMO = {}; [...CATS.expense, ...CATS.income].forEach(([c,e])=>EMO[c]=e);
+  // 지출/수입 양쪽에 있는 분류(식비=N빵 정산, 쏘): 이 분류의 수입은 통계에서 지출을 차감
+  const NET_CATS = new Set(CATS.expense.map(([c])=>c).filter(c=>CATS.income.some(([ic])=>ic===c)));
 
   const TRASH_KEY = "household-ledger-trash-v1";
 
@@ -366,9 +368,18 @@
     const map={}; let total=0;
     // 분류가 여러 개면 각 분류에 전체 금액을 반영(중복 집계) → 데이트에 얼마 썼나 등을 볼 수 있게.
     // total은 기록당 1회만 더해 실제 월 지출과 일치. 그래서 분류 비율 합이 100%를 넘을 수 있음.
-    data.forEach(r=>{ if(inView(r)&&r.type==="expense"){ r.cats.forEach(c=>{ map[c]=(map[c]||0)+r.amount; }); total+=r.amount; } });
+    // N빵 정산: 지출 분류가 달린 수입(예: 식비 수입)은 그 분류와 합계에서 차감 → 순지출 기준.
+    data.forEach(r=>{
+      if(!inView(r)) return;
+      if(r.type==="expense"){ r.cats.forEach(c=>{ map[c]=(map[c]||0)+r.amount; }); total+=r.amount; }
+      else {
+        const netCats=r.cats.filter(c=>NET_CATS.has(c));
+        if(netCats.length){ netCats.forEach(c=>{ map[c]=(map[c]||0)-r.amount; }); total-=r.amount; }
+      }
+    });
+    total=Math.max(0,total);
     document.getElementById("statTotal").textContent = total? "합계 "+won(total):"";
-    const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+    const rows=Object.entries(map).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
     if(!rows.length){ box.innerHTML='<div class="empty">이번 달 지출이 없어요.</div>'; return; }
     const max=rows[0][1];
     box.innerHTML="";
@@ -391,8 +402,12 @@
     for(let i=5;i>=0;i--){ const d=new Date(view.getFullYear(), view.getMonth()-i, 1); months.push(d); }
     const vals=months.map(d=>{
       const k=ym(d); let s=0;
-      data.forEach(r=>{ if(r.type==="expense"&&r.date.slice(0,7)===k) s+=r.amount; });
-      return s;
+      data.forEach(r=>{
+        if(r.date.slice(0,7)!==k) return;
+        if(r.type==="expense") s+=r.amount;
+        else if(r.cats.some(c=>NET_CATS.has(c))) s-=r.amount; // N빵 정산 수입은 차감
+      });
+      return Math.max(0,s);
     });
     const max=Math.max(1,...vals);
     const bw=(W-pad.l-pad.r)/months.length;
