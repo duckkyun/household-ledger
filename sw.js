@@ -1,5 +1,5 @@
 /* 가계부 서비스 워커 — 오프라인 실행용 (네트워크 우선, 실패 시 캐시) */
-const CACHE = "ledger-v3";
+const CACHE = "ledger-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -29,7 +29,8 @@ self.addEventListener("fetch", (e) => {
   // 우리 사이트 파일만 처리 — Firebase/gstatic 등 외부 요청은 그대로 네트워크로
   if (new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req)
+    // cache:"no-cache" — GitHub Pages의 HTTP 캐시(10분)를 건너뛰고 항상 서버에 최신 여부 확인
+    fetch(new Request(req.url, { cache: "no-cache" }))
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy));
