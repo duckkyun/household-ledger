@@ -104,6 +104,23 @@
   .item .del:hover{background:var(--expense);color:#fff}
   .empty{text-align:center;color:var(--muted);padding:26px 0;font-size:14px}
 
+  /* trash */
+  input[type=checkbox]{width:17px;height:17px;padding:0;margin:0;accent-color:var(--brand);flex:none}
+  .linkbtn{border:1px solid var(--line);background:var(--panel-2);color:var(--muted);padding:5px 10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap}
+  .h2-side{margin-left:auto}
+  .trash-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .trash-top .selall{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+  .trash-actions{display:flex;gap:6px}
+  .tbtn{border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600}
+  .tbtn.danger:hover{background:var(--expense);color:#fff;border-color:var(--expense)}
+  .titem{display:flex;align-items:center;gap:10px;padding:9px 4px;border-radius:10px}
+  .titem .meta{flex:1;min-width:0}
+  .titem .meta .c{font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .titem .meta .m{color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .titem .amt{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13.5px}
+  .titem .amt.expense{color:var(--expense)} .titem .amt.income{color:var(--income)}
+  .titem .tbtn{padding:6px 9px;font-size:12px;flex:none}
+
   /* stats */
   .statrow{display:flex; align-items:center; gap:10px; margin-bottom:9px}
   .statrow .lab{width:96px;flex:none;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
@@ -146,6 +163,7 @@
     </div>
   </header>
 
+  <div id="mainView">
   <section class="panel sync-panel">
     <div class="sync-row">
       <div class="sync-info">
@@ -184,7 +202,7 @@
   </section>
 
   <section class="panel">
-    <h2>📒 이번 달 내역 <span class="sub" id="listCount"></span></h2>
+    <h2>📒 이번 달 내역 <span class="sub" id="listCount"></span><button class="linkbtn h2-side" id="openTrash">🗑 휴지통</button></h2>
     <div id="list"></div>
   </section>
 
@@ -204,10 +222,27 @@
       <button id="expJson">JSON 백업</button>
       <button id="expCsv">CSV 내보내기</button>
       <label>JSON 복원<input type="file" id="impJson" accept="application/json,.json" hidden></label>
+      <button id="openTrash2">🗑 휴지통</button>
       <button id="clearAll" class="danger">전체 삭제</button>
     </div>
     <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요.</footer>
   </section>
+  </div><!-- /mainView -->
+
+  <div id="trashView" hidden>
+    <section class="panel">
+      <h2>🗑 휴지통 <span class="sub" id="trashCount"></span><button class="linkbtn h2-side" id="backMain">← 가계부로</button></h2>
+      <div class="trash-top">
+        <label class="selall"><input type="checkbox" id="trashSelAll"> 전체 선택</label>
+        <div class="trash-actions">
+          <button class="tbtn" id="restoreSel">선택 복구</button>
+          <button class="tbtn danger" id="purgeSel">선택 영구 삭제</button>
+        </div>
+      </div>
+      <div id="trashList"></div>
+      <footer>삭제한 기록이 여기에 보관됩니다. 복구하면 원래 자리로 돌아가요.</footer>
+    </section>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -225,8 +260,12 @@
   };
   const EMO = {}; [...CATS.expense, ...CATS.income].forEach(([c,e])=>EMO[c]=e);
 
+  const TRASH_KEY = "household-ledger-trash-v1";
+
   // ---- state ----
   let data = load();
+  let trash = loadTrash(); // 삭제된 기록 보관함
+  let trashSel = new Set(); // 휴지통에서 체크된 항목 id
   let curType = "expense";
   let curCats = new Set([CATS.expense[0][0]]);
   let view = firstOfThisMonth();
@@ -238,9 +277,14 @@
     arr.forEach(r=>{ if(!Array.isArray(r.cats)) r.cats = r.cat ? [r.cat] : ["기타"]; }); // 예전 단일 분류 호환
     return arr;
   }
+  function loadTrash(){
+    let arr; try{ arr = JSON.parse(localStorage.getItem(TRASH_KEY)) || []; }catch(e){ arr = []; }
+    return Array.isArray(arr) ? arr : [];
+  }
   function save(){
     localStorage.setItem(KEY, JSON.stringify(data));
-    if(window.CloudSync && window.CloudSync.active) window.CloudSync.push(data); // 로그인 시 클라우드에도 반영
+    localStorage.setItem(TRASH_KEY, JSON.stringify(trash));
+    if(window.CloudSync && window.CloudSync.active) window.CloudSync.push(data, trash); // 로그인 시 클라우드에도 반영
   }
   function firstOfThisMonth(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
   function won(n){ return "₩" + Math.round(n).toLocaleString("ko-KR"); }
@@ -308,7 +352,7 @@
         el.querySelector(".del").onclick=(e)=>{
           e.stopPropagation();
           const desc=`${r.date} · ${r.type==="income"?"수입":"지출"} ${won(r.amount)} · ${r.cats.join(", ")}${r.memo?` (${r.memo})`:""}`;
-          if(confirm(`이 기록을 정말 삭제할까요?\n${desc}`)) del(r.id);
+          if(confirm(`이 기록을 삭제할까요? 휴지통으로 이동돼요.\n${desc}`)) del(r.id);
         };
         el.onclick=()=>{ startEdit(r); }; // 아이템(아이콘 포함) 아무 곳이나 누르면 수정
         g.appendChild(el);
@@ -421,7 +465,81 @@
   }
   function del(id){
     if(id===editingId) resetForm(); // 수정 중이던 항목을 지우면 폼도 초기화
-    data=data.filter(r=>r.id!==id); save(); renderAll(); toast("삭제됨");
+    const rec=data.find(r=>r.id===id);
+    data=data.filter(r=>r.id!==id);
+    if(rec) trash.push({ ...rec, deletedAt: Date.now() });
+    save(); renderAll(); updateTrashBadge(); toast("휴지통으로 이동됨");
+  }
+
+  // ---- trash (휴지통) ----
+  function updateTrashBadge(){
+    const label = trash.length ? `🗑 휴지통 (${trash.length})` : "🗑 휴지통";
+    document.getElementById("openTrash").textContent = label;
+    document.getElementById("openTrash2").textContent = label;
+  }
+  function restoreItems(ids){
+    const set=new Set(ids);
+    const moving=trash.filter(t=>set.has(t.id));
+    if(!moving.length) return;
+    const existing=new Set(data.map(r=>r.id));
+    moving.forEach(t=>{
+      const rec={...t}; delete rec.deletedAt;
+      while(existing.has(rec.id)) rec.id=uid(); // 만일의 id 충돌 대비
+      existing.add(rec.id); data.push(rec);
+    });
+    trash=trash.filter(t=>!set.has(t.id));
+    ids.forEach(id=>trashSel.delete(id));
+    save(); renderAll(); renderTrash();
+    toast(moving.length+"건 복구됨");
+  }
+  function purgeItems(ids){
+    const set=new Set(ids);
+    const n=trash.reduce((s,t)=>s+(set.has(t.id)?1:0),0);
+    if(!n) return;
+    trash=trash.filter(t=>!set.has(t.id));
+    ids.forEach(id=>trashSel.delete(id));
+    save(); renderTrash();
+    toast(n+"건 영구 삭제됨");
+  }
+  function renderTrash(){
+    trashSel=new Set([...trashSel].filter(id=>trash.some(t=>t.id===id))); // 사라진 항목 정리
+    updateTrashBadge();
+    document.getElementById("trashCount").textContent = trash.length ? trash.length+"건" : "";
+    document.getElementById("trashSelAll").checked = trash.length>0 && trashSel.size===trash.length;
+    const box=document.getElementById("trashList");
+    if(!trash.length){ box.innerHTML='<div class="empty">휴지통이 비어 있어요.</div>'; return; }
+    box.innerHTML="";
+    trash.slice().sort((a,b)=>(b.deletedAt||0)-(a.deletedAt||0)).forEach(r=>{
+      const el=document.createElement("div"); el.className="titem";
+      const catLabel=r.cats.map(c=>`${EMO[c]||"📦"} ${escapeHtml(c)}`).join(" · ");
+      const dd=r.deletedAt?new Date(r.deletedAt):null;
+      el.innerHTML=`
+        <input type="checkbox" ${trashSel.has(r.id)?"checked":""} title="선택">
+        <div class="meta">
+          <div class="c">${catLabel}</div>
+          <div class="m">${r.date}${r.memo?` · ${escapeHtml(r.memo)}`:""}${dd?` · 삭제 ${dd.getMonth()+1}/${dd.getDate()}`:""}</div>
+        </div>
+        <div class="amt ${r.type}">${r.type==="income"?"+":"-"}${won(r.amount)}</div>
+        <button class="tbtn" data-a="restore">복구</button>
+        <button class="tbtn danger" data-a="purge" title="영구 삭제">✕</button>`;
+      el.querySelector("input").onchange=(e)=>{
+        e.target.checked ? trashSel.add(r.id) : trashSel.delete(r.id);
+        document.getElementById("trashSelAll").checked = trashSel.size===trash.length;
+      };
+      el.querySelector('[data-a="restore"]').onclick=()=>restoreItems([r.id]);
+      el.querySelector('[data-a="purge"]').onclick=()=>{
+        if(confirm(`이 기록을 영구 삭제할까요? 되돌릴 수 없습니다.\n${r.date} · ${won(r.amount)}${r.memo?` (${r.memo})`:""}`)) purgeItems([r.id]);
+      };
+      box.appendChild(el);
+    });
+  }
+  function route(){
+    const isTrash = location.hash === "#trash";
+    document.getElementById("mainView").hidden = isTrash;
+    document.getElementById("trashView").hidden = !isTrash;
+    document.querySelector(".month-nav").style.display = isTrash ? "none" : "flex";
+    if(isTrash) renderTrash();
+    window.scrollTo(0,0);
   }
 
   // ---- export / import ----
@@ -491,6 +609,24 @@
   };
   document.getElementById("cancelBtn").onclick=resetForm;
 
+  // 휴지통 페이지 이동/조작
+  document.getElementById("openTrash").onclick=()=>{ location.hash="#trash"; };
+  document.getElementById("openTrash2").onclick=()=>{ location.hash="#trash"; };
+  document.getElementById("backMain").onclick=()=>{ location.hash="#"; };
+  document.getElementById("trashSelAll").onchange=(e)=>{
+    trashSel = e.target.checked ? new Set(trash.map(t=>t.id)) : new Set();
+    renderTrash();
+  };
+  document.getElementById("restoreSel").onclick=()=>{
+    if(!trashSel.size){ toast("먼저 복구할 기록을 선택하세요"); return; }
+    restoreItems([...trashSel]);
+  };
+  document.getElementById("purgeSel").onclick=()=>{
+    if(!trashSel.size){ toast("먼저 영구 삭제할 기록을 선택하세요"); return; }
+    if(confirm(`선택한 ${trashSel.size}건을 영구 삭제할까요? 되돌릴 수 없습니다.`)) purgeItems([...trashSel]);
+  };
+  window.addEventListener("hashchange", route);
+
   // ---- 테마(라이트/다크) 토글 ----
   const THEME_KEY="household-ledger-theme";
   function effectiveTheme(){
@@ -515,10 +651,18 @@
       if(editingId && !data.some(r=>r.id===editingId)) resetForm(); // 편집 중이던 항목이 원격에서 사라졌으면 폼 정리
       renderAll();
     },
+    getTrash(){ return trash.slice(); },
+    setTrash(arr){
+      trash = Array.isArray(arr) ? arr : [];
+      localStorage.setItem(TRASH_KEY, JSON.stringify(trash));
+      if(location.hash==="#trash") renderTrash(); else updateTrashBadge();
+    },
     toast(msg){ toast(msg); }
   };
 
   renderAll();
+  updateTrashBadge();
+  route();
 })();
 </script>
 
@@ -562,9 +706,9 @@
     let userDocRef = null, unsub = null;
     window.CloudSync = {
       get active(){ return !!userDocRef; },
-      async push(entries){
+      async push(entries, trashArr){
         if(!userDocRef) return;
-        try { await setDoc(userDocRef, { entries, updatedAt: Date.now() }); }
+        try { await setDoc(userDocRef, { entries, trash: trashArr || [], updatedAt: Date.now() }); }
         catch(e){ App.toast("동기화 오류 (오프라인이면 자동 재시도)"); }
       }
     };
@@ -599,28 +743,37 @@
         setSub("☁️ 동기화 중 · " + (user.email || user.displayName || "로그인됨"));
         try {
           const snap = await getDoc(userDocRef);
+          const localTrash = App.getTrash();
           if(snap.exists() && Array.isArray(snap.data().entries)){
             const cloud = snap.data().entries;
+            // 휴지통은 클라우드 ∪ 이 기기 것으로 합침 (id 기준)
+            const cloudTrash = Array.isArray(snap.data().trash) ? snap.data().trash : [];
+            const tIds = new Set(cloudTrash.map(t=>t&&t.id));
+            const mergedTrash = cloudTrash.concat(localTrash.filter(t=> t && !tIds.has(t.id)));
             const cloudIds = new Set(cloud.map(e=>e.id));
             const extra = App.getData().filter(e=> e && !cloudIds.has(e.id)); // 이 기기에만 있는 기록
+            let entries = cloud;
             if(extra.length && confirm(`이 기기에만 있는 기록 ${extra.length}건을 클라우드에 합칠까요?\n확인=합치기 / 취소=클라우드 기록만 사용`)){
-              const merged = cloud.concat(extra);
-              await setDoc(userDocRef, { entries: merged, updatedAt: Date.now() });
-              App.setData(merged);
-            } else {
-              App.setData(cloud);
+              entries = cloud.concat(extra);
             }
+            if(entries !== cloud || mergedTrash.length !== cloudTrash.length){
+              await setDoc(userDocRef, { entries, trash: mergedTrash, updatedAt: Date.now() });
+            }
+            App.setData(entries);
+            App.setTrash(mergedTrash);
           } else {
             // 최초 로그인: 이 기기의 기존 기록을 클라우드로 올림
             const local = App.getData();
-            await setDoc(userDocRef, { entries: local, updatedAt: Date.now() });
+            await setDoc(userDocRef, { entries: local, trash: localTrash, updatedAt: Date.now() });
             App.setData(local);
+            App.setTrash(localTrash);
           }
         } catch(e){ App.toast("클라우드 불러오기 실패"); }
         // 실시간 구독: 다른 기기의 변경이 자동 반영됨
         unsub = onSnapshot(userDocRef, (d)=>{
-          const e = (d.exists() && Array.isArray(d.data().entries)) ? d.data().entries : [];
-          App.setData(e);
+          const dd = d.exists() ? d.data() : {};
+          App.setData(Array.isArray(dd.entries) ? dd.entries : []);
+          if(Array.isArray(dd.trash)) App.setTrash(dd.trash); // trash 필드가 없는 옛 데이터면 이 기기 휴지통 유지
         });
       } else {
         userDocRef = null;
