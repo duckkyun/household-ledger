@@ -46,7 +46,10 @@
   header.top{display:flex; align-items:center; justify-content:space-between; gap:12px; row-gap:10px; flex-wrap:wrap; padding:8px 2px 16px;}
   .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:-.02em;}
   .brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-size:15px}
-  .hgroup{display:flex; align-items:center; gap:8px;}
+  .hgroup{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .mode-seg{display:flex; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
+  .mode-seg button{border:0; background:transparent; color:var(--muted); padding:6px 11px; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer}
+  .mode-seg button.active{background:var(--brand); color:#fff}
   .icon-btn{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:15px;line-height:1}
   .month-nav{display:flex; align-items:center; gap:6px;}
   .month-nav button{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px}
@@ -154,6 +157,11 @@
   <header class="top">
     <div class="brand"><span class="dot">₩</span> 가계부</div>
     <div class="hgroup">
+      <div class="mode-seg" id="modeSeg">
+        <button data-m="month">월</button>
+        <button data-m="week">주</button>
+        <button data-m="day">일</button>
+      </div>
       <div class="month-nav">
         <button id="prevM" title="이전 달">‹</button>
         <div class="label" id="monthLabel">—</div>
@@ -202,7 +210,7 @@
   </section>
 
   <section class="panel">
-    <h2>📒 이번 달 내역 <span class="sub" id="listCount"></span><button class="linkbtn h2-side" id="openTrash">🗑 휴지통</button></h2>
+    <h2>📒 <span id="listTitle">이번 달 내역</span> <span class="sub" id="listCount"></span><button class="linkbtn h2-side" id="openTrash">🗑 휴지통</button></h2>
     <div id="list"></div>
   </section>
 
@@ -212,7 +220,7 @@
   </section>
 
   <section class="panel">
-    <h2>📈 월별 지출 추이 <span class="sub">최근 6개월</span></h2>
+    <h2>📈 지출 추이 <span class="sub" id="trendSub">최근 6개월</span></h2>
     <svg class="trend" id="trend" viewBox="0 0 600 150" preserveAspectRatio="none" aria-hidden="true"></svg>
   </section>
 
@@ -225,7 +233,7 @@
       <button id="openTrash2">🗑 휴지통</button>
       <button id="clearAll" class="danger">전체 삭제</button>
     </div>
-    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v7</b></footer>
+    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v8</b></footer>
   </section>
   </div><!-- /mainView -->
 
@@ -270,7 +278,10 @@
   let trashSel = new Set(); // 휴지통에서 체크된 항목 id
   let curType = "expense";
   let curCats = new Set([CATS.expense[0][0]]);
-  let view = firstOfThisMonth();
+  const MODE_KEY = "household-ledger-viewmode";
+  let viewMode = localStorage.getItem(MODE_KEY);
+  if(!["month","week","day"].includes(viewMode)) viewMode = "month";
+  let view = anchorForMode(new Date()); // 보고 있는 기간의 시작일 (월:1일 / 주:월요일 / 일:그날)
   let editingId = null; // null이면 새 기록 추가, 값이 있으면 그 기록을 수정 중
 
   // ---- helpers ----
@@ -288,19 +299,41 @@
     localStorage.setItem(TRASH_KEY, JSON.stringify(trash));
     if(window.CloudSync && window.CloudSync.active) window.CloudSync.push(data, trash); // 로그인 시 클라우드에도 반영
   }
-  function firstOfThisMonth(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
   function won(n){ return "₩" + Math.round(n).toLocaleString("ko-KR"); }
   function ymd(d){ const p=x=>String(x).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
   function ym(d){ const p=x=>String(x).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1); }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-  function inView(rec){ return rec.date.slice(0,7) === ym(view); }
+  function addDays(d,n){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; }
+  function startOfWeek(d){ return addDays(d, -((d.getDay()+6)%7)); } // 월요일 시작
+  function anchorForMode(d){
+    if(viewMode==="month") return new Date(d.getFullYear(), d.getMonth(), 1);
+    if(viewMode==="week") return startOfWeek(d);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+  function periodRange(){ // 보고 있는 기간 [시작일, 끝일] (yyyy-mm-dd, 양끝 포함)
+    if(viewMode==="month") return [ymd(view), ymd(new Date(view.getFullYear(), view.getMonth()+1, 0))];
+    if(viewMode==="week") return [ymd(view), ymd(addDays(view,6))];
+    return [ymd(view), ymd(view)];
+  }
+  function inView(rec){ const [f,t]=periodRange(); return rec.date>=f && rec.date<=t; }
   function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1800); }
 
   // ---- rendering ----
   function renderAll(){ renderMonth(); renderChips(); renderSummary(); renderList(); renderStats(); renderTrend(); }
 
   function renderMonth(){
-    document.getElementById("monthLabel").textContent = view.getFullYear()+"년 "+(view.getMonth()+1)+"월";
+    const el=document.getElementById("monthLabel");
+    const wd=["일","월","화","수","목","금","토"];
+    const yPrefix = view.getFullYear()!==new Date().getFullYear() ? "'"+String(view.getFullYear()).slice(2)+" " : "";
+    if(viewMode==="month"){
+      el.textContent = view.getFullYear()+"년 "+(view.getMonth()+1)+"월";
+    } else if(viewMode==="week"){
+      const e=addDays(view,6);
+      el.textContent = yPrefix+(view.getMonth()+1)+"/"+view.getDate()+"~"+(e.getMonth()+1)+"/"+e.getDate();
+    } else {
+      el.textContent = yPrefix+(view.getMonth()+1)+"/"+view.getDate()+" ("+wd[view.getDay()]+")";
+    }
+    document.getElementById("listTitle").textContent = {month:"이번 달 내역", week:"이번 주 내역", day:"하루 내역"}[viewMode];
   }
 
   function renderChips(){
@@ -398,30 +431,48 @@
   function renderTrend(){
     const svg=document.getElementById("trend");
     const W=600,H=150, pad={l:8,r:8,t:14,b:22};
-    const months=[];
-    for(let i=5;i>=0;i--){ const d=new Date(view.getFullYear(), view.getMonth()-i, 1); months.push(d); }
-    const vals=months.map(d=>{
-      const k=ym(d); let s=0;
+    // 모드별 버킷: 월=최근 6개월 / 주=최근 8주 / 일=최근 14일 (모두 보고 있는 기간에서 끝남)
+    const buckets=[];
+    if(viewMode==="month"){
+      for(let i=5;i>=0;i--){
+        const d=new Date(view.getFullYear(), view.getMonth()-i, 1);
+        buckets.push({ from:ymd(d), to:ymd(new Date(d.getFullYear(),d.getMonth()+1,0)), label:(d.getMonth()+1)+"월", cur:i===0 });
+      }
+      document.getElementById("trendSub").textContent="최근 6개월";
+    } else if(viewMode==="week"){
+      for(let i=7;i>=0;i--){
+        const s=addDays(view,-7*i);
+        buckets.push({ from:ymd(s), to:ymd(addDays(s,6)), label:(s.getMonth()+1)+"/"+s.getDate(), cur:i===0 });
+      }
+      document.getElementById("trendSub").textContent="최근 8주 (주별)";
+    } else {
+      for(let i=13;i>=0;i--){
+        const d=addDays(view,-i);
+        buckets.push({ from:ymd(d), to:ymd(d), label:(i===13||d.getDate()===1)?(d.getMonth()+1)+"/"+d.getDate():String(d.getDate()), cur:i===0 });
+      }
+      document.getElementById("trendSub").textContent="최근 14일";
+    }
+    const vals=buckets.map(b=>{
+      let s=0;
       data.forEach(r=>{
-        if(r.date.slice(0,7)!==k) return;
+        if(r.date<b.from || r.date>b.to) return;
         if(r.type==="expense") s+=r.amount;
         else if(r.cats.some(c=>NET_CATS.has(c))) s-=r.amount; // N빵 정산 수입은 차감
       });
       return Math.max(0,s);
     });
     const max=Math.max(1,...vals);
-    const bw=(W-pad.l-pad.r)/months.length;
+    const bw=(W-pad.l-pad.r)/buckets.length;
     let html="";
     // baseline
     html+=`<line class="gl" x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}"/>`;
-    months.forEach((d,i)=>{
+    buckets.forEach((b,i)=>{
       const bh=(H-pad.t-pad.b)*(vals[i]/max);
       const x=pad.l+i*bw+bw*0.18, w=bw*0.64;
       const y=H-pad.b-bh;
-      const cur = ym(d)===ym(view);
-      html+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,bh).toFixed(1)}" rx="4" fill="${cur?'var(--brand)':'var(--line)'}"/>`;
+      html+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,bh).toFixed(1)}" rx="4" fill="${b.cur?'var(--brand)':'var(--line)'}"/>`;
       if(vals[i]>0){ const lab=vals[i]>=10000?Math.round(vals[i]/10000)+"만":Math.round(vals[i]/1000)+"천"; html+=`<text x="${(x+w/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle">${lab}</text>`; }
-      html+=`<text x="${(x+w/2).toFixed(1)}" y="${H-6}" text-anchor="middle">${d.getMonth()+1}월</text>`;
+      html+=`<text x="${(x+w/2).toFixed(1)}" y="${H-6}" text-anchor="middle">${b.label}</text>`;
     });
     svg.innerHTML=html;
   }
@@ -447,8 +498,8 @@
     }
     save();
     resetForm();
-    // 기록(또는 수정)한 달로 이동해 바로 보이게
-    view=new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1);
+    // 기록(또는 수정)한 날이 속한 기간으로 이동해 바로 보이게
+    view=anchorForMode(new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, Number(date.slice(8,10))));
     renderAll();
   }
   function startEdit(rec){
@@ -553,6 +604,7 @@
     document.getElementById("mainView").hidden = isTrash;
     document.getElementById("trashView").hidden = !isTrash;
     document.querySelector(".month-nav").style.display = isTrash ? "none" : "flex";
+    document.getElementById("modeSeg").style.display = isTrash ? "none" : "flex";
     if(isTrash) renderTrash();
     window.scrollTo(0,0);
   }
@@ -614,8 +666,30 @@
     fAmount.value = digits ? Number(digits).toLocaleString("ko-KR") : "";
   });
   fAmount.addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
-  document.getElementById("prevM").onclick=()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); renderAll(); };
-  document.getElementById("nextM").onclick=()=>{ view=new Date(view.getFullYear(),view.getMonth()+1,1); renderAll(); };
+  function shiftView(dir){
+    if(viewMode==="month") view=new Date(view.getFullYear(), view.getMonth()+dir, 1);
+    else if(viewMode==="week") view=addDays(view, 7*dir);
+    else view=addDays(view, dir);
+    renderAll();
+  }
+  document.getElementById("prevM").onclick=()=>shiftView(-1);
+  document.getElementById("nextM").onclick=()=>shiftView(1);
+  // 월/주/일 보기 전환 — 보던 기간에 오늘이 포함되면 오늘 기준, 아니면 보던 기간 기준으로 전환
+  const modeSeg=document.getElementById("modeSeg");
+  function paintMode(){ modeSeg.querySelectorAll("button").forEach(x=>x.classList.toggle("active", x.dataset.m===viewMode)); }
+  paintMode();
+  modeSeg.querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{
+      if(viewMode===b.dataset.m) return;
+      const [f,t]=periodRange(), todayS=ymd(new Date());
+      const anchor = (todayS>=f && todayS<=t) ? new Date() : view;
+      viewMode=b.dataset.m;
+      try{ localStorage.setItem(MODE_KEY, viewMode); }catch(e){}
+      view=anchorForMode(anchor);
+      paintMode();
+      renderAll();
+    };
+  });
   document.getElementById("expJson").onclick=expJson;
   document.getElementById("expCsv").onclick=expCsv;
   document.getElementById("impJson").addEventListener("change",e=>{ if(e.target.files[0]) impJson(e.target.files[0]); e.target.value=""; });
