@@ -1,5 +1,5 @@
 /* 가계부 서비스 워커 — 오프라인 실행용 (네트워크 우선, 실패 시 캐시) */
-const CACHE = "ledger-v7";
+const CACHE = "ledger-v8";
 const ASSETS = [
   "./",
   "./index.html",
