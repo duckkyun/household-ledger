@@ -134,6 +134,24 @@
   .statrow .val{width:118px;flex:none;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted)}
   .statrow .val b{color:var(--text)}
   @media (max-width:560px){ .statrow .lab{width:78px} .statrow .val{width:96px} }
+  .stats-more{width:100%; margin-top:10px; text-align:center; padding:9px; font-size:13px}
+
+  /* stats page (#stats) — 분류별 지출 파이 차트 */
+  .sp-controls{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px}
+  .sp-nav{display:flex; align-items:center; gap:6px}
+  .sp-nav button{background:var(--panel-2); border:1px solid var(--line); color:var(--text); width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:15px}
+  .sp-nav .label{min-width:90px;text-align:center;font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sp-nav .today{width:auto;padding:0 10px;font-size:12px;font-weight:700;color:var(--muted)}
+  .pie-wrap{display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center; padding:8px 0 4px}
+  .pie{width:200px; height:200px; flex:none}
+  .legend{flex:1; min-width:230px; max-width:100%}
+  .lrow{display:flex; align-items:center; gap:9px; padding:6px 4px; font-size:13.5px}
+  .lrow .sw{width:12px;height:12px;border-radius:4px;flex:none;display:inline-block;vertical-align:middle}
+  .lrow .nm{flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lrow .nm .sw{margin-right:2px}
+  .lrow .am{font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap}
+  .lrow .pc{width:44px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; font-size:12.5px; flex:none}
+  .combo-note{color:var(--muted); font-size:12px; margin:6px 2px 0}
 
   /* trend chart */
   .trend{width:100%; height:150px; display:block}
@@ -225,6 +243,7 @@
       </div>
     </h2>
     <div id="stats"></div>
+    <button class="linkbtn stats-more" id="openStats">🥧 파이 차트로 자세히 보기 →</button>
   </section>
 
   <section class="panel">
@@ -241,7 +260,7 @@
       <button id="openTrash2">🗑 휴지통</button>
       <button id="clearAll" class="danger">전체 삭제</button>
     </div>
-    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v9</b></footer>
+    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v10</b></footer>
   </section>
   </div><!-- /mainView -->
 
@@ -257,6 +276,34 @@
       </div>
       <div id="trashList"></div>
       <footer>삭제한 기록이 여기에 보관됩니다. 복구하면 원래 자리로 돌아가요.</footer>
+    </section>
+  </div>
+
+  <div id="statsView" hidden>
+    <section class="panel">
+      <h2>📊 분류별 지출 <button class="linkbtn h2-side" id="backMain2">← 가계부로</button></h2>
+      <div class="sp-controls">
+        <div class="mode-seg mini" id="spSeg">
+          <button data-m="month">월</button>
+          <button data-m="week">주</button>
+          <button data-m="day">일</button>
+        </div>
+        <div class="sp-nav">
+          <button id="spPrev" title="이전 기간">‹</button>
+          <div class="label" id="spLabel">—</div>
+          <button id="spNext" title="다음 기간">›</button>
+          <button id="spToday" class="today" title="오늘로 이동">오늘</button>
+        </div>
+      </div>
+      <div class="pie-wrap">
+        <svg class="pie" id="pie" viewBox="0 0 200 200" role="img" aria-label="분류별 지출 비율"></svg>
+        <div class="legend" id="spLegend"></div>
+      </div>
+      <div class="combo-note" id="spNote" hidden>* 여러 분류가 달린 기록은 금액을 분류 수로 나눠 반영했어요. 아래에서 원래 금액을 볼 수 있어요.</div>
+    </section>
+    <section class="panel" id="spComboPanel" hidden>
+      <h2>🔗 여러 분류로 쓴 지출 <span class="sub" id="spComboSub"></span></h2>
+      <div id="spCombos"></div>
     </section>
   </div>
 </div>
@@ -277,6 +324,17 @@
   const EMO = {}; [...CATS.expense, ...CATS.income].forEach(([c,e])=>EMO[c]=e);
   // 지출/수입 양쪽에 있는 분류(식비=N빵 정산, 쏘): 이 분류의 수입은 통계에서 지출을 차감
   const NET_CATS = new Set(CATS.expense.map(([c])=>c).filter(c=>CATS.income.some(([ic])=>ic===c)));
+  // 파이 차트용 분류 색 — 다크/라이트 양쪽에서 구분되는 중간 채도
+  const CAT_COLORS = {
+    "식비":"#fb923c","카페/간식":"#facc15","생활/마트":"#34d399","문화/여가":"#60a5fa",
+    "의료/건강":"#f87171","교육":"#38bdf8","패션/미용":"#f472b6","경조사":"#c084fc",
+    "교통":"#2dd4bf","쏘":"#fb7185","기타":"#94a3b8"
+  };
+  function catColor(c){
+    if(CAT_COLORS[c]) return CAT_COLORS[c];
+    let h=0; for(let i=0;i<c.length;i++) h=(h*31+c.charCodeAt(i))%360;
+    return "hsl("+h+" 60% 60%)"; // 목록에 없는 분류(옛 데이터 등)도 항상 같은 색
+  }
 
   const TRASH_KEY = "household-ledger-trash-v1";
 
@@ -293,6 +351,8 @@
   const STAT_KEY = "household-ledger-statmode";
   let statMode = localStorage.getItem(STAT_KEY); // 하단 통계 기간 단위 — 위 보기 모드와 독립 (주별 내역 + 월별 통계 가능)
   if(!["month","week","day"].includes(statMode)) statMode = "month";
+  let spMode = "month"; // 분류별 지출 페이지(#stats)의 기간 단위 — 열 때 statMode로 초기화
+  let spView = new Date(); // 분류별 지출 페이지의 기준일
   let editingId = null; // null이면 새 기록 추가, 값이 있으면 그 기록을 수정 중
 
   // ---- helpers ----
@@ -327,23 +387,28 @@
     return [ymd(view), ymd(view)];
   }
   function inView(rec){ const [f,t]=periodRange(); return rec.date>=f && rec.date<=t; }
-  function statAnchor(){ // 통계 기간의 시작일 — 보고 있는 날짜(view)가 속한 statMode 기간
-    if(statMode==="month") return new Date(view.getFullYear(), view.getMonth(), 1);
-    if(statMode==="week") return startOfWeek(view);
-    return view;
+  // 임의 (기간 단위, 기준일)에 대한 시작일/범위/라벨 — 하단 통계와 #stats 페이지가 공용
+  function anchorFor(mode,d){
+    if(mode==="month") return new Date(d.getFullYear(), d.getMonth(), 1);
+    if(mode==="week") return startOfWeek(d);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
-  function statRange(){ // 통계 기간 [시작일, 끝일] (yyyy-mm-dd, 양끝 포함)
-    const a=statAnchor();
-    if(statMode==="month") return [ymd(a), ymd(new Date(a.getFullYear(), a.getMonth()+1, 0))];
-    if(statMode==="week") return [ymd(a), ymd(addDays(a,6))];
+  function rangeFor(mode,d){ // [시작일, 끝일] (yyyy-mm-dd, 양끝 포함)
+    const a=anchorFor(mode,d);
+    if(mode==="month") return [ymd(a), ymd(new Date(a.getFullYear(), a.getMonth()+1, 0))];
+    if(mode==="week") return [ymd(a), ymd(addDays(a,6))];
     return [ymd(a), ymd(a)];
   }
-  function statLabel(){
-    const a=statAnchor();
-    if(statMode==="month") return a.getFullYear()!==new Date().getFullYear() ? "'"+String(a.getFullYear()).slice(2)+" "+(a.getMonth()+1)+"월" : (a.getMonth()+1)+"월";
-    if(statMode==="week"){ const e=addDays(a,6); return (a.getMonth()+1)+"/"+a.getDate()+"~"+(e.getMonth()+1)+"/"+e.getDate(); }
-    return (a.getMonth()+1)+"/"+a.getDate();
+  function labelFor(mode,d){
+    const a=anchorFor(mode,d);
+    const yp = a.getFullYear()!==new Date().getFullYear() ? "'"+String(a.getFullYear()).slice(2)+" " : "";
+    if(mode==="month") return yp+(a.getMonth()+1)+"월";
+    if(mode==="week"){ const e=addDays(a,6); return yp+(a.getMonth()+1)+"/"+a.getDate()+"~"+(e.getMonth()+1)+"/"+e.getDate(); }
+    return yp+(a.getMonth()+1)+"/"+a.getDate();
   }
+  function statAnchor(){ return anchorFor(statMode, view); } // 하단 통계 기간의 시작일
+  function statRange(){ return rangeFor(statMode, view); }
+  function statLabel(){ return labelFor(statMode, view); }
   function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1800); }
 
   // ---- rendering ----
@@ -630,13 +695,88 @@
       box.appendChild(el);
     });
   }
+  function renderStatsPage(){
+    document.getElementById("spSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active", x.dataset.m===spMode));
+    document.getElementById("spLabel").textContent = labelFor(spMode, spView);
+    const [f,t]=rangeFor(spMode, spView);
+    // 분류별 배분액: 여러 분류가 달린 기록은 금액을 1/N씩 나눠 반영 → 파이 합계가 실제 지출과 일치.
+    // N빵 정산 수입(NET_CATS)은 같은 방식으로 차감. 원래 금액은 아래 '여러 분류로 쓴 지출'에서 보여줌.
+    const map={}; let total=0;
+    const combos={}; let comboTotal=0, comboCount=0;
+    data.forEach(r=>{
+      if(r.date<f || r.date>t) return;
+      if(r.type==="expense"){
+        const share=r.amount/r.cats.length;
+        r.cats.forEach(c=>{ map[c]=(map[c]||0)+share; });
+        total+=r.amount;
+        if(r.cats.length>1){
+          const k=r.cats.join(" · ");
+          (combos[k]=combos[k]||{cats:r.cats, sum:0, n:0});
+          combos[k].sum+=r.amount; combos[k].n++;
+          comboTotal+=r.amount; comboCount++;
+        }
+      } else {
+        const netCats=r.cats.filter(c=>NET_CATS.has(c));
+        if(netCats.length){ const share=r.amount/netCats.length; netCats.forEach(c=>{ map[c]=(map[c]||0)-share; }); total-=r.amount; }
+      }
+    });
+    total=Math.max(0,total);
+    const rows=Object.entries(map).filter(([,v])=>v>=1).sort((a,b)=>b[1]-a[1]);
+    const sum=rows.reduce((s,[,v])=>s+v,0);
+    // 도넛 파이
+    const svg=document.getElementById("pie");
+    if(!rows.length){
+      svg.innerHTML='<circle cx="100" cy="100" r="70" fill="none" stroke="var(--panel-2)" stroke-width="32"/>'
+        +'<text x="100" y="105" text-anchor="middle" font-size="13" fill="var(--muted)">지출 없음</text>';
+    } else {
+      const C=2*Math.PI*70;
+      let off=0, html="";
+      rows.forEach(([c,v])=>{
+        const frac=v/sum;
+        html+=`<circle cx="100" cy="100" r="70" fill="none" stroke="${catColor(c)}" stroke-width="32" stroke-dasharray="${(frac*C).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off*C).toFixed(2)}" transform="rotate(-90 100 100)"/>`;
+        off+=frac;
+      });
+      html+=`<text x="100" y="92" text-anchor="middle" font-size="11" fill="var(--muted)">${escapeHtml(labelFor(spMode,spView))} 지출</text>`;
+      html+=`<text x="100" y="114" text-anchor="middle" font-size="17" font-weight="800" fill="var(--text)">${won(total)}</text>`;
+      svg.innerHTML=html;
+    }
+    // 범례
+    const lg=document.getElementById("spLegend"); lg.innerHTML="";
+    if(!rows.length) lg.innerHTML='<div class="empty">이 기간 지출이 없어요.</div>';
+    rows.forEach(([c,v])=>{
+      const pct=sum? (v/sum*100) : 0;
+      const row=document.createElement("div"); row.className="lrow";
+      row.innerHTML=`<span class="sw" style="background:${catColor(c)}"></span>`
+        +`<span class="nm">${EMO[c]||"📦"} ${escapeHtml(c)}</span>`
+        +`<span class="am">${won(v)}</span><span class="pc">${pct<1?pct.toFixed(1):Math.round(pct)}%</span>`;
+      lg.appendChild(row);
+    });
+    // 여러 분류가 함께 달린 기록: 조합별로 묶어 원래 금액 그대로 표시
+    const comboRows=Object.values(combos).sort((a,b)=>b.sum-a.sum);
+    document.getElementById("spNote").hidden = !comboRows.length;
+    document.getElementById("spComboPanel").hidden = !comboRows.length;
+    if(comboRows.length){
+      document.getElementById("spComboSub").textContent = comboCount+"건 · "+won(comboTotal);
+      const box=document.getElementById("spCombos"); box.innerHTML="";
+      comboRows.forEach(g=>{
+        const nm=g.cats.map(c=>`<span class="sw" style="background:${catColor(c)}"></span>${EMO[c]||"📦"} ${escapeHtml(c)}`).join(' <span style="color:var(--muted)">+</span> ');
+        const row=document.createElement("div"); row.className="lrow";
+        row.innerHTML=`<span class="nm">${nm}</span><span class="am">${won(g.sum)}</span><span class="pc">${g.n}건</span>`;
+        box.appendChild(row);
+      });
+    }
+  }
+
   function route(){
     const isTrash = location.hash === "#trash";
-    document.getElementById("mainView").hidden = isTrash;
+    const isStats = location.hash === "#stats";
+    document.getElementById("mainView").hidden = isTrash || isStats;
     document.getElementById("trashView").hidden = !isTrash;
-    document.querySelector(".month-nav").style.display = isTrash ? "none" : "flex";
-    document.getElementById("modeSeg").style.display = isTrash ? "none" : "flex";
+    document.getElementById("statsView").hidden = !isStats;
+    document.querySelector(".month-nav").style.display = (isTrash||isStats) ? "none" : "flex";
+    document.getElementById("modeSeg").style.display = (isTrash||isStats) ? "none" : "flex";
     if(isTrash) renderTrash();
+    if(isStats) renderStatsPage();
     window.scrollTo(0,0);
   }
 
@@ -742,6 +882,30 @@
   document.getElementById("openTrash").onclick=()=>{ location.hash="#trash"; };
   document.getElementById("openTrash2").onclick=()=>{ location.hash="#trash"; };
   document.getElementById("backMain").onclick=()=>{ location.hash="#"; };
+
+  // 분류별 지출 페이지 (#stats)
+  document.getElementById("openStats").onclick=()=>{ spMode=statMode; spView=view; location.hash="#stats"; };
+  document.getElementById("backMain2").onclick=()=>{ location.hash="#"; };
+  document.getElementById("spSeg").querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{
+      if(spMode===b.dataset.m) return;
+      // 보던 기간에 오늘이 포함되면 오늘 기준으로 전환 (메인 모드 전환과 같은 규칙)
+      const [f,t]=rangeFor(spMode,spView), todayS=ymd(new Date());
+      if(todayS>=f && todayS<=t) spView=new Date();
+      spMode=b.dataset.m;
+      renderStatsPage();
+    };
+  });
+  function shiftStatsPage(dir){
+    const a=anchorFor(spMode,spView);
+    if(spMode==="month") spView=new Date(a.getFullYear(), a.getMonth()+dir, 1);
+    else if(spMode==="week") spView=addDays(a, 7*dir);
+    else spView=addDays(a, dir);
+    renderStatsPage();
+  }
+  document.getElementById("spPrev").onclick=()=>shiftStatsPage(-1);
+  document.getElementById("spNext").onclick=()=>shiftStatsPage(1);
+  document.getElementById("spToday").onclick=()=>{ spView=new Date(); renderStatsPage(); };
   document.getElementById("trashSelAll").onchange=(e)=>{
     trashSel = e.target.checked ? new Set(trash.map(t=>t.id)) : new Set();
     renderTrash();
@@ -779,6 +943,7 @@
       localStorage.setItem(KEY, JSON.stringify(data));
       if(editingId && !data.some(r=>r.id===editingId)) resetForm(); // 편집 중이던 항목이 원격에서 사라졌으면 폼 정리
       renderAll();
+      if(location.hash==="#stats") renderStatsPage(); // 통계 페이지를 보는 중이면 파이도 갱신
     },
     getTrash(){ return trash.slice(); },
     setTrash(arr){
