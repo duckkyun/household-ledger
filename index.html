@@ -50,6 +50,8 @@
   .mode-seg{display:flex; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
   .mode-seg button{border:0; background:transparent; color:var(--muted); padding:6px 11px; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer}
   .mode-seg button.active{background:var(--brand); color:#fff}
+  .mode-seg.mini button{padding:4px 10px; font-size:12px}
+  .panel h2 .mode-seg{margin-left:auto}
   .icon-btn{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:15px;line-height:1}
   .month-nav{display:flex; align-items:center; gap:6px;}
   .month-nav button{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px}
@@ -215,7 +217,13 @@
   </section>
 
   <section class="panel">
-    <h2>📊 분류별 지출 <span class="sub" id="statTotal"></span></h2>
+    <h2>📊 분류별 지출 <span class="sub" id="statTotal"></span>
+      <div class="mode-seg mini" id="statSeg" title="통계 기간 (위 내역 보기와 별개)">
+        <button data-m="month" class="active">월</button>
+        <button data-m="week">주</button>
+        <button data-m="day">일</button>
+      </div>
+    </h2>
     <div id="stats"></div>
   </section>
 
@@ -233,7 +241,7 @@
       <button id="openTrash2">🗑 휴지통</button>
       <button id="clearAll" class="danger">전체 삭제</button>
     </div>
-    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v8</b></footer>
+    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v9</b></footer>
   </section>
   </div><!-- /mainView -->
 
@@ -282,6 +290,9 @@
   let viewMode = localStorage.getItem(MODE_KEY);
   if(!["month","week","day"].includes(viewMode)) viewMode = "month";
   let view = anchorForMode(new Date()); // 보고 있는 기간의 시작일 (월:1일 / 주:월요일 / 일:그날)
+  const STAT_KEY = "household-ledger-statmode";
+  let statMode = localStorage.getItem(STAT_KEY); // 하단 통계 기간 단위 — 위 보기 모드와 독립 (주별 내역 + 월별 통계 가능)
+  if(!["month","week","day"].includes(statMode)) statMode = "month";
   let editingId = null; // null이면 새 기록 추가, 값이 있으면 그 기록을 수정 중
 
   // ---- helpers ----
@@ -316,6 +327,23 @@
     return [ymd(view), ymd(view)];
   }
   function inView(rec){ const [f,t]=periodRange(); return rec.date>=f && rec.date<=t; }
+  function statAnchor(){ // 통계 기간의 시작일 — 보고 있는 날짜(view)가 속한 statMode 기간
+    if(statMode==="month") return new Date(view.getFullYear(), view.getMonth(), 1);
+    if(statMode==="week") return startOfWeek(view);
+    return view;
+  }
+  function statRange(){ // 통계 기간 [시작일, 끝일] (yyyy-mm-dd, 양끝 포함)
+    const a=statAnchor();
+    if(statMode==="month") return [ymd(a), ymd(new Date(a.getFullYear(), a.getMonth()+1, 0))];
+    if(statMode==="week") return [ymd(a), ymd(addDays(a,6))];
+    return [ymd(a), ymd(a)];
+  }
+  function statLabel(){
+    const a=statAnchor();
+    if(statMode==="month") return a.getFullYear()!==new Date().getFullYear() ? "'"+String(a.getFullYear()).slice(2)+" "+(a.getMonth()+1)+"월" : (a.getMonth()+1)+"월";
+    if(statMode==="week"){ const e=addDays(a,6); return (a.getMonth()+1)+"/"+a.getDate()+"~"+(e.getMonth()+1)+"/"+e.getDate(); }
+    return (a.getMonth()+1)+"/"+a.getDate();
+  }
   function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1800); }
 
   // ---- rendering ----
@@ -402,8 +430,9 @@
     // 분류가 여러 개면 각 분류에 전체 금액을 반영(중복 집계) → 데이트에 얼마 썼나 등을 볼 수 있게.
     // total은 기록당 1회만 더해 실제 월 지출과 일치. 그래서 분류 비율 합이 100%를 넘을 수 있음.
     // N빵 정산: 지출 분류가 달린 수입(예: 식비 수입)은 그 분류와 합계에서 차감 → 순지출 기준.
+    const [f,t]=statRange(); // 위 내역 보기와 독립적인 통계 기간
     data.forEach(r=>{
-      if(!inView(r)) return;
+      if(r.date<f || r.date>t) return;
       if(r.type==="expense"){ r.cats.forEach(c=>{ map[c]=(map[c]||0)+r.amount; }); total+=r.amount; }
       else {
         const netCats=r.cats.filter(c=>NET_CATS.has(c));
@@ -411,9 +440,10 @@
       }
     });
     total=Math.max(0,total);
-    document.getElementById("statTotal").textContent = total? "합계 "+won(total):"";
+    document.getElementById("statTotal").textContent = statLabel()+(total? " · 합계 "+won(total):"");
+    document.getElementById("statSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active", x.dataset.m===statMode));
     const rows=Object.entries(map).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-    if(!rows.length){ box.innerHTML='<div class="empty">이번 달 지출이 없어요.</div>'; return; }
+    if(!rows.length){ box.innerHTML='<div class="empty">이 기간 지출이 없어요.</div>'; return; }
     const max=rows[0][1];
     box.innerHTML="";
     rows.forEach(([c,v])=>{
@@ -431,23 +461,24 @@
   function renderTrend(){
     const svg=document.getElementById("trend");
     const W=600,H=150, pad={l:8,r:8,t:14,b:22};
-    // 모드별 버킷: 월=최근 6개월 / 주=최근 8주 / 일=최근 14일 (모두 보고 있는 기간에서 끝남)
+    // 통계 단위(statMode)별 버킷: 월=최근 6개월 / 주=최근 8주 / 일=최근 14일 (모두 통계 기간에서 끝남)
+    const a=statAnchor();
     const buckets=[];
-    if(viewMode==="month"){
+    if(statMode==="month"){
       for(let i=5;i>=0;i--){
-        const d=new Date(view.getFullYear(), view.getMonth()-i, 1);
+        const d=new Date(a.getFullYear(), a.getMonth()-i, 1);
         buckets.push({ from:ymd(d), to:ymd(new Date(d.getFullYear(),d.getMonth()+1,0)), label:(d.getMonth()+1)+"월", cur:i===0 });
       }
       document.getElementById("trendSub").textContent="최근 6개월";
-    } else if(viewMode==="week"){
+    } else if(statMode==="week"){
       for(let i=7;i>=0;i--){
-        const s=addDays(view,-7*i);
+        const s=addDays(a,-7*i);
         buckets.push({ from:ymd(s), to:ymd(addDays(s,6)), label:(s.getMonth()+1)+"/"+s.getDate(), cur:i===0 });
       }
       document.getElementById("trendSub").textContent="최근 8주 (주별)";
     } else {
       for(let i=13;i>=0;i--){
-        const d=addDays(view,-i);
+        const d=addDays(a,-i);
         buckets.push({ from:ymd(d), to:ymd(d), label:(i===13||d.getDate()===1)?(d.getMonth()+1)+"/"+d.getDate():String(d.getDate()), cur:i===0 });
       }
       document.getElementById("trendSub").textContent="최근 14일";
@@ -688,6 +719,15 @@
       view=anchorForMode(anchor);
       paintMode();
       renderAll();
+    };
+  });
+  // 하단 통계 기간 전환 — 위 보기 모드와 독립 (예: 주별 내역을 보면서 월별 통계)
+  document.getElementById("statSeg").querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{
+      if(statMode===b.dataset.m) return;
+      statMode=b.dataset.m;
+      try{ localStorage.setItem(STAT_KEY, statMode); }catch(e){}
+      renderStats(); renderTrend();
     };
   });
   document.getElementById("expJson").onclick=expJson;
