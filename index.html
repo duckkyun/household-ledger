@@ -260,7 +260,7 @@
       <button id="openTrash2">🗑 휴지통</button>
       <button id="clearAll" class="danger">전체 삭제</button>
     </div>
-    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v10</b></footer>
+    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v11</b></footer>
   </section>
   </div><!-- /mainView -->
 
@@ -978,6 +978,9 @@
     appId: "1:853229218804:web:b127147fdf072ebdf5a7a1"
   };
   // ↑↑↑ 여기까지 교체 ↑↑↑
+  // Firebase Hosting(web.app/firebaseapp.com)에서 열리면 인증 도메인도 같은 도메인으로.
+  // 리다이렉트 로그인이 완전한 동일 출처가 되어 iOS 홈 화면 앱(서드파티 저장소 차단)에서도 동작.
+  if(/\.web\.app$|\.firebaseapp\.com$/.test(location.hostname)) firebaseConfig.authDomain = location.hostname;
 
   const App = window.LedgerApp;
   const authBtn = document.getElementById("authBtn");
