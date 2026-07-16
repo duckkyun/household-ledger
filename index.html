@@ -42,11 +42,14 @@
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",Segoe UI,Roboto,sans-serif;
     -webkit-font-smoothing:antialiased; line-height:1.5;
   }
-  .wrap{max-width:760px; margin:0 auto; padding:16px 16px 96px;}
+  .wrap{max-width:760px; margin:0 auto; padding:16px 16px 124px;}
   header.top{display:flex; align-items:center; justify-content:space-between; gap:12px; row-gap:10px; flex-wrap:wrap; padding:8px 2px 16px;}
   .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:-.02em;}
   .brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-size:15px}
+  .brand-btn{border:0;background:transparent;color:var(--text);padding:0;cursor:pointer}
   .hgroup{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .period-toolbar{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .period-toolbar[hidden]{display:none}
   .mode-seg{display:flex; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
   .mode-seg button{border:0; background:transparent; color:var(--muted); padding:6px 11px; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer}
   .mode-seg button.active{background:var(--brand); color:#fff}
@@ -56,8 +59,13 @@
   .month-nav{display:flex; align-items:center; gap:6px;}
   .month-nav button{background:var(--panel); border:1px solid var(--line); color:var(--text); width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px}
   .month-nav .label{min-width:104px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+  .month-nav .today-main{width:auto;padding:0 10px;font-size:12px;font-weight:700;color:var(--muted)}
   button{font-family:inherit}
   button:active{transform:translateY(1px)}
+  button:focus-visible,input:focus-visible,label[tabindex]:focus-visible,[tabindex="0"]:focus-visible{
+    outline:3px solid color-mix(in srgb, var(--brand) 45%, transparent);
+    outline-offset:2px;
+  }
 
   .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow);}
@@ -69,9 +77,19 @@
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:16px;}
   .panel h2{margin:0 0 12px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px}
   .panel h2 .sub{font-weight:500;color:var(--muted);font-size:12px}
+  .view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:2px 2px 14px}
+  .view-head h1{font-size:21px;line-height:1.25;margin:0;letter-spacing:-.03em}
+  .view-head p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+  .view-link{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:8px 11px;border-radius:10px;cursor:pointer;font-size:12.5px;font-weight:700}
+  .page-view[hidden]{display:none!important}
 
   /* form */
+  .entry-form{margin:0}
+  .field{display:block}
+  .form-fieldset{border:0;padding:0;margin:0 0 12px;min-width:0}
+  .form-fieldset legend,.field > span{display:block;color:var(--muted);font-size:12px;font-weight:700;margin:0 0 6px 2px}
   .seg{display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:4px; gap:4px; margin-bottom:12px}
+  .form-fieldset .seg{margin-bottom:0}
   .seg button{flex:1; border:0; background:transparent; color:var(--muted); padding:9px; border-radius:9px; font-weight:700; cursor:pointer}
   .seg button.active[data-t="expense"]{background:var(--expense); color:#fff}
   .seg button.active[data-t="income"]{background:var(--income); color:#04241a}
@@ -84,6 +102,7 @@
   input[type=date]{-webkit-appearance:none; appearance:none; display:block; max-width:100%; min-height:46px; text-align:left; font-family:inherit; color:var(--text); background-color:var(--panel-2)}
   input[type=date]::-webkit-date-and-time-value{text-align:left; margin:0}
   .chips{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px}
+  .form-fieldset .chips{margin-bottom:0}
   .chip{border:1px solid var(--line); background:var(--panel-2); color:var(--text); padding:7px 11px; border-radius:999px; cursor:pointer; font-size:13px; font-weight:600}
   .chip.active{background:var(--brand); border-color:var(--brand); color:#fff}
   .form-actions{display:flex; gap:8px}
@@ -96,18 +115,21 @@
   .daygroup .dh{display:flex; justify-content:space-between; align-items:baseline; padding:0 2px 6px; border-bottom:1px dashed var(--line); margin-bottom:6px}
   .daygroup .dh .d{font-weight:700;font-size:13px}
   .daygroup .dh .s{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-  .item{display:flex; align-items:center; gap:12px; padding:9px 4px; border-radius:10px; cursor:pointer}
+  .item{display:flex; align-items:center; gap:12px; padding:9px 4px; border-radius:10px; cursor:pointer;touch-action:pan-y;-webkit-user-select:none;user-select:none}
   @media (hover:hover){ .item:hover{background:var(--panel-2)} }
   .item.editing{background:var(--panel-2); box-shadow:inset 0 0 0 1.5px var(--brand)}
+  .item.pressing,.item.menu-open{background:var(--panel-2)}
   .item .emoji{width:34px;height:34px;border-radius:10px;background:var(--panel-2);display:grid;place-items:center;font-size:17px;flex:none}
   .item .meta{flex:1;min-width:0}
   .item .meta .c{font-weight:600;font-size:14px}
   .item .meta .m{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .item .amt{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
   .item .amt.expense{color:var(--expense)} .item .amt.income{color:var(--income)}
-  .item .del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 6px;border-radius:8px;flex:none}
-  @media (hover:hover){ .item .del:hover{background:var(--expense);color:#fff} }
+  .item .more{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:19px;padding:5px 8px;border-radius:8px;flex:none;line-height:1}
+  @media (hover:hover){ .item .more:hover{background:var(--panel-2);color:var(--text)} }
   .empty{text-align:center;color:var(--muted);padding:26px 0;font-size:14px}
+  .recent-list .daygroup{margin-bottom:0}
+  .recent-list .item:last-child{margin-bottom:0}
 
   /* trash */
   input[type=checkbox]{width:17px;height:17px;padding:0;margin:0;accent-color:var(--brand);flex:none}
@@ -168,146 +190,252 @@
   .btn-auth{border:0; background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff; padding:10px 16px; border-radius:11px; font-weight:700; font-size:13.5px; cursor:pointer; white-space:nowrap}
   .btn-auth:disabled{opacity:.6; cursor:not-allowed; background:var(--panel-2); color:var(--muted); box-shadow:inset 0 0 0 1px var(--line)}
   footer{color:var(--muted);text-align:center;font-size:12px;margin-top:8px}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* bottom navigation */
+  .bottom-nav{
+    position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:40;
+    width:min(760px,100%);display:grid;grid-template-columns:repeat(5,1fr);
+    padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    background:color-mix(in srgb,var(--panel) 94%,transparent);border-top:1px solid var(--line);
+    box-shadow:0 -10px 28px rgba(0,0,0,.16);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)
+  }
+  .nav-btn{position:relative;border:0;background:transparent;color:var(--muted);min-height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:10.5px;font-weight:700}
+  .nav-btn .ni{font-size:20px;line-height:1}
+  .nav-btn.active{color:var(--brand-2)}
+  .nav-btn.add-tab{transform:translateY(-18px)}
+  .nav-btn.add-tab .ni{width:52px;height:52px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;font-size:30px;box-shadow:0 10px 24px rgba(99,102,241,.4)}
+  .nav-btn.add-tab .nl{margin-top:1px}
+
+  /* action sheet */
+  .sheet-backdrop{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.46);display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+  .sheet-backdrop[hidden]{display:none}
+  .action-sheet{width:min(520px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+  .sheet-handle{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 12px}
+  .sheet-title{font-weight:800;font-size:16px;margin:0 2px 3px}
+  .sheet-sub{color:var(--muted);font-size:12.5px;margin:0 2px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sheet-actions{display:grid;gap:7px}
+  .sheet-actions button{border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:13px;border-radius:12px;text-align:left;font-size:14px;font-weight:700;cursor:pointer}
+  .sheet-actions button.danger{color:var(--expense)}
+  .sheet-actions button.cancel{text-align:center;color:var(--muted);margin-top:3px}
+
+  .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 12px 10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:90;display:flex;align-items:center;gap:12px;max-width:calc(100% - 28px);white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.26)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+  .toast button{border:0;background:var(--brand);color:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
+
+  @media (max-width:560px){
+    .wrap{padding-top:10px}
+    header.top{padding-bottom:12px}
+    .period-toolbar{align-items:stretch;flex-direction:column}
+    .mode-seg{align-self:flex-start}
+    .month-nav{width:100%;justify-content:space-between}
+    .month-nav .label{flex:1;min-width:0}
+    .view-head{align-items:center}
+    .view-head h1{font-size:19px}
+    .view-head p{max-width:240px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><span class="dot">₩</span> 가계부</div>
-    <div class="hgroup">
-      <div class="mode-seg" id="modeSeg">
-        <button data-m="month">월</button>
-        <button data-m="week">주</button>
-        <button data-m="day">일</button>
+    <button class="brand brand-btn" id="brandHome" type="button" aria-label="가계부 홈으로">
+      <span class="dot" aria-hidden="true">₩</span> 가계부
+    </button>
+    <button id="themeToggle" class="icon-btn" type="button" aria-label="라이트 또는 다크 모드 전환" title="라이트/다크 모드 전환">🌙</button>
+    <div class="period-toolbar" id="periodToolbar">
+      <div class="mode-seg" id="modeSeg" role="group" aria-label="내역 기간 단위">
+        <button type="button" data-m="month">월</button>
+        <button type="button" data-m="week">주</button>
+        <button type="button" data-m="day">일</button>
       </div>
       <div class="month-nav">
-        <button id="prevM" title="이전 달">‹</button>
-        <div class="label" id="monthLabel">—</div>
-        <button id="nextM" title="다음 달">›</button>
+        <button type="button" id="prevM" aria-label="이전 기간" title="이전 기간">‹</button>
+        <div class="label" id="monthLabel" aria-live="polite">—</div>
+        <button type="button" id="nextM" aria-label="다음 기간" title="다음 기간">›</button>
+        <button type="button" id="todayBtn" class="today-main" aria-label="오늘이 포함된 기간으로 이동">오늘</button>
       </div>
-      <button id="themeToggle" class="icon-btn" title="라이트/다크 모드 전환">🌙</button>
     </div>
   </header>
 
-  <div id="mainView">
-  <section class="panel sync-panel">
-    <div class="sync-row">
-      <div class="sync-info">
-        <div class="sync-title">☁️ 클라우드 동기화</div>
-        <div class="sync-sub" id="syncSub">로그인하면 폰·PC에서 같은 기록을 봐요</div>
-      </div>
-      <button id="authBtn" class="btn-auth">구글 로그인</button>
+  <main>
+  <div id="homeView" class="page-view">
+    <div class="view-head">
+      <div><h1>홈</h1><p id="summaryPeriod">선택한 기간의 수입과 지출이에요.</p></div>
+      <button class="view-link" id="homeAdd" type="button">+ 기록</button>
     </div>
-  </section>
-
-  <section class="cards">
-    <div class="card inc"><div class="k">수입</div><div class="v" id="sumIncome">₩0</div></div>
-    <div class="card exp"><div class="k">지출</div><div class="v" id="sumExpense">₩0</div></div>
-    <div class="card"><div class="k">잔액</div><div class="v" id="sumBalance">₩0</div></div>
-  </section>
-
-  <section class="panel">
-    <h2 id="formTitle">✏️ 새 기록 <span class="sub">분류는 여러 개 선택 가능 · 내역을 누르면 수정</span></h2>
-    <div class="editing-banner" id="editBanner" hidden>✏️ 기존 기록을 수정 중입니다. 값을 바꾸고 <b>수정 완료</b>를 누르세요.</div>
-    <div class="seg" id="typeSeg">
-      <button data-t="expense" class="active">지출</button>
-      <button data-t="income">수입</button>
-    </div>
-    <div class="row">
-      <input type="date" id="fDate" />
-      <input type="text" id="fAmount" inputmode="numeric" autocomplete="off" placeholder="금액 (원)" />
-    </div>
-    <div class="chips" id="catChips"></div>
-    <div class="row" style="grid-template-columns:1fr">
-      <input type="text" id="fMemo" placeholder="메모 (선택) — 예: 점심, 스타벅스" maxlength="60" />
-    </div>
-    <div class="form-actions">
-      <button class="btn-add" id="addBtn">추가하기</button>
-      <button class="btn-cancel" id="cancelBtn" hidden>취소</button>
-    </div>
-  </section>
-
-  <section class="panel">
-    <h2>📒 <span id="listTitle">이번 달 내역</span> <span class="sub" id="listCount"></span><button class="linkbtn h2-side" id="openTrash">🗑 휴지통</button></h2>
-    <div id="list"></div>
-  </section>
-
-  <section class="panel">
-    <h2>📊 분류별 지출 <span class="sub" id="statTotal"></span>
-      <div class="mode-seg mini" id="statSeg" title="통계 기간 (위 내역 보기와 별개)">
-        <button data-m="month" class="active">월</button>
-        <button data-m="week">주</button>
-        <button data-m="day">일</button>
-      </div>
-    </h2>
-    <div id="stats"></div>
-    <button class="linkbtn stats-more" id="openStats">🥧 파이 차트로 자세히 보기 →</button>
-  </section>
-
-  <section class="panel">
-    <h2>📈 지출 추이 <span class="sub" id="trendSub">최근 6개월</span></h2>
-    <svg class="trend" id="trend" viewBox="0 0 600 150" preserveAspectRatio="none" aria-hidden="true"></svg>
-  </section>
-
-  <section class="panel">
-    <h2>🗂 데이터 관리</h2>
-    <div class="tools">
-      <button id="expJson">JSON 백업</button>
-      <button id="expCsv">CSV 내보내기</button>
-      <label>JSON 복원<input type="file" id="impJson" accept="application/json,.json" hidden></label>
-      <button id="openTrash2">🗑 휴지통</button>
-      <button id="clearAll" class="danger">전체 삭제</button>
-    </div>
-    <footer>데이터는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v11</b></footer>
-  </section>
-  </div><!-- /mainView -->
-
-  <div id="trashView" hidden>
+    <section class="cards" aria-label="기간 요약">
+      <div class="card inc"><div class="k">수입</div><div class="v" id="sumIncome">₩0</div></div>
+      <div class="card exp"><div class="k">지출</div><div class="v" id="sumExpense">₩0</div></div>
+      <div class="card"><div class="k">잔액</div><div class="v" id="sumBalance">₩0</div></div>
+    </section>
     <section class="panel">
-      <h2>🗑 휴지통 <span class="sub" id="trashCount"></span><button class="linkbtn h2-side" id="backMain">← 가계부로</button></h2>
-      <div class="trash-top">
-        <label class="selall"><input type="checkbox" id="trashSelAll"> 전체 선택</label>
-        <div class="trash-actions">
-          <button class="tbtn" id="restoreSel">선택 복구</button>
-          <button class="tbtn danger" id="purgeSel">선택 영구 삭제</button>
-        </div>
-      </div>
-      <div id="trashList"></div>
-      <footer>삭제한 기록이 여기에 보관됩니다. 복구하면 원래 자리로 돌아가요.</footer>
+      <h2>🕘 최근 내역 <span class="sub" id="homeRecentCount"></span><button class="linkbtn h2-side" id="openRecords" type="button">전체 보기</button></h2>
+      <div id="homeRecent" class="recent-list"></div>
+    </section>
+    <section class="panel">
+      <h2>📊 한눈에 보는 지출 <span class="sub" id="homeStatTotal"></span></h2>
+      <div id="homeStats"></div>
+      <button class="linkbtn stats-more" id="openStats" type="button">통계 자세히 보기 →</button>
     </section>
   </div>
 
-  <div id="statsView" hidden>
+  <div id="recordsView" class="page-view" hidden>
+    <div class="view-head">
+      <div><h1>내역</h1><p>짧게 누르면 수정, 길게 누르면 더 많은 작업을 할 수 있어요.</p></div>
+    </div>
     <section class="panel">
-      <h2>📊 분류별 지출 <button class="linkbtn h2-side" id="backMain2">← 가계부로</button></h2>
+      <h2>📒 <span id="listTitle">이번 달 내역</span> <span class="sub" id="listCount"></span><button class="linkbtn h2-side" id="openTrash" type="button">🗑 휴지통</button></h2>
+      <div id="list"></div>
+    </section>
+  </div>
+
+  <div id="addView" class="page-view" hidden>
+    <div class="view-head">
+      <div><h1 id="formTitle">새 기록</h1><p>금액과 분류만으로도 빠르게 기록할 수 있어요.</p></div>
+    </div>
+    <section class="panel">
+      <form id="entryForm" class="entry-form">
+        <div class="editing-banner" id="editBanner" hidden>✏️ 기존 기록을 수정 중입니다. 값을 바꾸고 <b>수정 완료</b>를 누르세요.</div>
+        <fieldset class="form-fieldset">
+          <legend>구분</legend>
+          <div class="seg" id="typeSeg" role="group" aria-label="수입 또는 지출 선택">
+            <button type="button" data-t="expense" class="active" aria-pressed="true">지출</button>
+            <button type="button" data-t="income" aria-pressed="false">수입</button>
+          </div>
+        </fieldset>
+        <div class="row">
+          <label class="field"><span>날짜</span><input type="date" id="fDate" required aria-required="true" /></label>
+          <label class="field"><span>금액</span><input type="text" id="fAmount" inputmode="numeric" autocomplete="off" placeholder="예: 12,000" required aria-required="true" /></label>
+        </div>
+        <fieldset class="form-fieldset">
+          <legend>분류 <span class="sub">여러 개 선택 가능</span></legend>
+          <div class="chips" id="catChips" role="group" aria-label="분류 선택"></div>
+        </fieldset>
+        <label class="field">
+          <span>메모 <span class="sub">(선택)</span></span>
+          <input type="text" id="fMemo" placeholder="예: 점심, 스타벅스" maxlength="60" />
+        </label>
+        <div class="form-actions" style="margin-top:12px">
+          <button type="submit" class="btn-add" id="addBtn">추가하기</button>
+          <button type="button" class="btn-cancel" id="cancelBtn" hidden>취소</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div id="statsView" class="page-view" hidden>
+    <div class="view-head">
+      <div><h1>통계</h1><p>기간별 소비 구성과 흐름을 비교해 보세요.</p></div>
+    </div>
+    <section class="panel">
       <div class="sp-controls">
-        <div class="mode-seg mini" id="spSeg">
-          <button data-m="month">월</button>
-          <button data-m="week">주</button>
-          <button data-m="day">일</button>
+        <div class="mode-seg mini" id="statSeg" role="group" aria-label="통계 기간 단위">
+          <button type="button" data-m="month">월</button>
+          <button type="button" data-m="week">주</button>
+          <button type="button" data-m="day">일</button>
         </div>
         <div class="sp-nav">
-          <button id="spPrev" title="이전 기간">‹</button>
-          <div class="label" id="spLabel">—</div>
-          <button id="spNext" title="다음 기간">›</button>
-          <button id="spToday" class="today" title="오늘로 이동">오늘</button>
+          <button type="button" id="spPrev" aria-label="이전 통계 기간" title="이전 기간">‹</button>
+          <div class="label" id="spLabel" aria-live="polite">—</div>
+          <button type="button" id="spNext" aria-label="다음 통계 기간" title="다음 기간">›</button>
+          <button type="button" id="spToday" class="today" aria-label="오늘 통계로 이동" title="오늘로 이동">오늘</button>
         </div>
       </div>
+    </section>
+    <section class="panel">
+      <h2>📊 분류별 지출 <span class="sub" id="statTotal"></span></h2>
+      <div id="stats"></div>
+    </section>
+    <section class="panel">
+      <h2>🥧 지출 구성</h2>
       <div class="pie-wrap">
         <svg class="pie" id="pie" viewBox="0 0 200 200" role="img" aria-label="분류별 지출 비율"></svg>
         <div class="legend" id="spLegend"></div>
       </div>
       <div class="combo-note" id="spNote" hidden>* 여러 분류가 달린 기록은 금액을 분류 수로 나눠 반영했어요. 아래에서 원래 금액을 볼 수 있어요.</div>
     </section>
+    <section class="panel">
+      <h2>📈 지출 추이 <span class="sub" id="trendSub">최근 6개월</span></h2>
+      <svg class="trend" id="trend" viewBox="0 0 600 150" preserveAspectRatio="none" role="img" aria-label="기간별 지출 추이"></svg>
+    </section>
     <section class="panel" id="spComboPanel" hidden>
       <h2>🔗 여러 분류로 쓴 지출 <span class="sub" id="spComboSub"></span></h2>
       <div id="spCombos"></div>
     </section>
   </div>
+
+  <div id="settingsView" class="page-view" hidden>
+    <div class="view-head">
+      <div><h1>설정</h1><p>동기화, 백업과 데이터 관리를 한곳에서 할 수 있어요.</p></div>
+    </div>
+    <section class="panel sync-panel">
+      <div class="sync-row">
+        <div class="sync-info">
+          <div class="sync-title">☁️ 클라우드 동기화</div>
+          <div class="sync-sub" id="syncSub" aria-live="polite">로그인하면 폰·PC에서 같은 기록을 봐요</div>
+        </div>
+        <button type="button" id="authBtn" class="btn-auth">구글 로그인</button>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>🗂 데이터 관리</h2>
+      <div class="tools">
+        <button type="button" id="expJson">JSON 백업</button>
+        <button type="button" id="expCsv">CSV 내보내기</button>
+        <label tabindex="0" role="button">JSON 복원<input type="file" id="impJson" accept="application/json,.json" hidden></label>
+        <button type="button" id="openTrash2">🗑 휴지통</button>
+        <button type="button" id="clearAll" class="danger">전체 삭제</button>
+      </div>
+      <footer>로그아웃 상태에서는 이 브라우저에만 저장됩니다. 정기적으로 JSON 백업을 권장해요. · <b>v12</b></footer>
+    </section>
+  </div>
+
+  <div id="trashView" class="page-view" hidden>
+    <section class="panel">
+      <h2>🗑 휴지통 <span class="sub" id="trashCount"></span><button class="linkbtn h2-side" id="backMain" type="button">← 설정으로</button></h2>
+      <div class="trash-top">
+        <label class="selall"><input type="checkbox" id="trashSelAll"> 전체 선택</label>
+        <div class="trash-actions">
+          <button type="button" class="tbtn" id="restoreSel">선택 복구</button>
+          <button type="button" class="tbtn danger" id="purgeSel">선택 영구 삭제</button>
+        </div>
+      </div>
+      <div id="trashList"></div>
+      <footer>삭제한 기록이 여기에 보관됩니다. 복구하면 원래 자리로 돌아가요.</footer>
+    </section>
+  </div>
+  </main>
 </div>
-<div class="toast" id="toast"></div>
+
+<nav class="bottom-nav" id="bottomNav" aria-label="주요 메뉴">
+  <button type="button" class="nav-btn" data-route="home"><span class="ni" aria-hidden="true">⌂</span><span class="nl">홈</span></button>
+  <button type="button" class="nav-btn" data-route="records"><span class="ni" aria-hidden="true">☷</span><span class="nl">내역</span></button>
+  <button type="button" class="nav-btn add-tab" data-route="add"><span class="ni" aria-hidden="true">+</span><span class="nl">추가</span></button>
+  <button type="button" class="nav-btn" data-route="stats"><span class="ni" aria-hidden="true">◔</span><span class="nl">통계</span></button>
+  <button type="button" class="nav-btn" data-route="settings"><span class="ni" aria-hidden="true">⚙</span><span class="nl">설정</span></button>
+</nav>
+
+<div class="sheet-backdrop" id="recordMenuBackdrop" hidden>
+  <div class="action-sheet" role="dialog" aria-modal="true" aria-labelledby="recordMenuTitle" aria-describedby="recordMenuSub">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-title" id="recordMenuTitle">기록 작업</div>
+    <div class="sheet-sub" id="recordMenuSub"></div>
+    <div class="sheet-actions">
+      <button type="button" id="menuDuplicate">⧉ 복제하기</button>
+      <button type="button" id="menuEdit">✏️ 수정하기</button>
+      <button type="button" id="menuDelete" class="danger">🗑 휴지통으로 이동</button>
+      <button type="button" id="menuCancel" class="cancel">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+  <span id="toastMessage"></span>
+  <button type="button" id="toastAction" hidden></button>
+</div>
 
 <script>
 (function(){
@@ -349,11 +477,12 @@
   if(!["month","week","day"].includes(viewMode)) viewMode = "month";
   let view = anchorForMode(new Date()); // 보고 있는 기간의 시작일 (월:1일 / 주:월요일 / 일:그날)
   const STAT_KEY = "household-ledger-statmode";
-  let statMode = localStorage.getItem(STAT_KEY); // 하단 통계 기간 단위 — 위 보기 모드와 독립 (주별 내역 + 월별 통계 가능)
+  let statMode = localStorage.getItem(STAT_KEY); // 통계 페이지 기간 단위
   if(!["month","week","day"].includes(statMode)) statMode = "month";
-  let spMode = "month"; // 분류별 지출 페이지(#stats)의 기간 단위 — 열 때 statMode로 초기화
-  let spView = new Date(); // 분류별 지출 페이지의 기준일
+  let spView = new Date(); // 통계 페이지의 기준일
   let editingId = null; // null이면 새 기록 추가, 값이 있으면 그 기록을 수정 중
+  let actionRecordId = null; // 길게 누르기 메뉴에서 선택된 기록
+  let actionMenuReturnFocus = null;
 
   // ---- helpers ----
   function load(){
@@ -406,13 +535,43 @@
     if(mode==="week"){ const e=addDays(a,6); return yp+(a.getMonth()+1)+"/"+a.getDate()+"~"+(e.getMonth()+1)+"/"+e.getDate(); }
     return yp+(a.getMonth()+1)+"/"+a.getDate();
   }
-  function statAnchor(){ return anchorFor(statMode, view); } // 하단 통계 기간의 시작일
-  function statRange(){ return rangeFor(statMode, view); }
-  function statLabel(){ return labelFor(statMode, view); }
-  function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1800); }
+  function statAnchor(){ return anchorFor(statMode, spView); }
+  function statRange(){ return rangeFor(statMode, spView); }
+  function statLabel(){ return labelFor(statMode, spView); }
+  function snapshotState(){
+    return {
+      data: data.map(r=>({...r,cats:[...r.cats]})),
+      trash: trash.map(r=>({...r,cats:[...r.cats]}))
+    };
+  }
+  function restoreSnapshot(snap){
+    data=snap.data.map(r=>({...r,cats:[...r.cats]}));
+    trash=snap.trash.map(r=>({...r,cats:[...r.cats]}));
+    save(); renderAll(); updateTrashBadge();
+    if(location.hash==="#trash") renderTrash();
+  }
+  function toast(msg, actionLabel, actionFn){
+    const t=document.getElementById("toast");
+    const message=document.getElementById("toastMessage");
+    const action=document.getElementById("toastAction");
+    message.textContent=msg;
+    clearTimeout(t._h);
+    action.hidden=!actionLabel;
+    action.textContent=actionLabel||"";
+    action.onclick=()=>{
+      t.classList.remove("show");
+      clearTimeout(t._h);
+      if(actionFn) actionFn();
+    };
+    t.classList.add("show");
+    t._h=setTimeout(()=>t.classList.remove("show"), actionLabel?5000:2200);
+  }
 
   // ---- rendering ----
-  function renderAll(){ renderMonth(); renderChips(); renderSummary(); renderList(); renderStats(); renderTrend(); }
+  function renderAll(){
+    renderMonth(); renderChips(); renderSummary(); renderHomeRecent(); renderList();
+    renderHomeStats(); renderStats(); renderTrend(); renderStatsPage();
+  }
 
   function renderMonth(){
     const el=document.getElementById("monthLabel");
@@ -427,14 +586,18 @@
       el.textContent = yPrefix+(view.getMonth()+1)+"/"+view.getDate()+" ("+wd[view.getDay()]+")";
     }
     document.getElementById("listTitle").textContent = {month:"이번 달 내역", week:"이번 주 내역", day:"하루 내역"}[viewMode];
+    document.getElementById("summaryPeriod").textContent = el.textContent+"의 수입과 지출이에요.";
   }
 
   function renderChips(){
     const box=document.getElementById("catChips"); box.innerHTML="";
     CATS[curType].forEach(([c,e])=>{
       const b=document.createElement("button");
+      b.type="button";
       b.className="chip"+(curCats.has(c)?" active":"");
       b.innerHTML=`<span>${e}</span> ${c}`;
+      b.setAttribute("aria-pressed",curCats.has(c)?"true":"false");
+      b.setAttribute("aria-label",c+" 분류 "+(curCats.has(c)?"선택됨":"선택 안 됨"));
       b.onclick=()=>{ curCats.has(c)?curCats.delete(c):curCats.add(c); renderChips(); };
       box.appendChild(b);
     });
@@ -451,11 +614,93 @@
     be.style.color = bal<0 ? "var(--expense)" : "var(--text)";
   }
 
+  function recordDescription(r){
+    return `${r.date} · ${r.type==="income"?"수입":"지출"} ${won(r.amount)} · ${r.cats.join(", ")}${r.memo?` · ${r.memo}`:""}`;
+  }
+
+  function openRecordMenu(rec, returnFocus){
+    actionRecordId=rec.id;
+    actionMenuReturnFocus=returnFocus||document.activeElement;
+    document.getElementById("recordMenuSub").textContent=recordDescription(rec);
+    document.getElementById("recordMenuBackdrop").hidden=false;
+    document.querySelectorAll(".item.menu-open").forEach(x=>x.classList.remove("menu-open"));
+    if(returnFocus && returnFocus.closest) returnFocus.closest(".item")?.classList.add("menu-open");
+    setTimeout(()=>document.getElementById("menuDuplicate").focus(),0);
+  }
+
+  function closeRecordMenu(){
+    document.getElementById("recordMenuBackdrop").hidden=true;
+    document.querySelectorAll(".item.menu-open").forEach(x=>x.classList.remove("menu-open"));
+    actionRecordId=null;
+    const target=actionMenuReturnFocus;
+    actionMenuReturnFocus=null;
+    if(target && target.focus) target.focus();
+  }
+
+  function setupRecordInteraction(el,r,withMenu){
+    let pressTimer=null, longPressed=false, startX=0, startY=0;
+    const cancelPress=()=>{ clearTimeout(pressTimer); pressTimer=null; el.classList.remove("pressing"); };
+    const edit=()=>{ startEdit(r); };
+    el.onclick=(e)=>{
+      if(e.target.closest("button")) return;
+      if(longPressed){ longPressed=false; return; }
+      edit();
+    };
+    el.onkeydown=(e)=>{
+      if(e.target!==el) return;
+      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); edit(); }
+      if(withMenu && (e.key==="ContextMenu" || (e.shiftKey && e.key==="F10"))){ e.preventDefault(); openRecordMenu(r,el); }
+    };
+    if(!withMenu) return;
+    el.onpointerdown=(e)=>{
+      if(e.target.closest("button") || e.pointerType==="mouse" && e.button!==0) return;
+      startX=e.clientX; startY=e.clientY; longPressed=false; el.classList.add("pressing");
+      pressTimer=setTimeout(()=>{
+        longPressed=true; el.classList.remove("pressing");
+        if(navigator.vibrate) navigator.vibrate(20);
+        openRecordMenu(r,el);
+      },520);
+    };
+    el.onpointermove=(e)=>{ if(Math.abs(e.clientX-startX)>10 || Math.abs(e.clientY-startY)>10) cancelPress(); };
+    el.onpointerup=cancelPress;
+    el.onpointercancel=cancelPress;
+    el.oncontextmenu=(e)=>{ e.preventDefault(); cancelPress(); openRecordMenu(r,el); };
+    const more=el.querySelector(".more");
+    more.onclick=(e)=>{ e.stopPropagation(); openRecordMenu(r,more); };
+  }
+
+  function makeRecordItem(r,withMenu){
+    const el=document.createElement("div");
+    el.className="item"+(r.id===editingId?" editing":"");
+    el.tabIndex=0;
+    el.setAttribute("role","group");
+    el.setAttribute("aria-label",recordDescription(r)+". 눌러서 수정"+(withMenu?", 길게 눌러 작업 메뉴 열기":""));
+    const catLabel=r.cats.map(c=>`${EMO[c]||"📦"} ${escapeHtml(c)}`).join(" · ");
+    el.innerHTML=`
+      <div class="emoji" aria-hidden="true">${EMO[r.cats[0]]||"📦"}</div>
+      <div class="meta"><div class="c">${catLabel}</div>${r.memo?`<div class="m">${escapeHtml(r.memo)}</div>`:""}</div>
+      <div class="amt ${r.type}">${r.type==="income"?"+":"-"}${won(r.amount)}</div>
+      ${withMenu?`<button type="button" class="more" aria-label="${escapeHtml(recordDescription(r))} 작업 메뉴" title="복제·수정·삭제">⋯</button>`:""}`;
+    setupRecordInteraction(el,r,withMenu);
+    return el;
+  }
+
+  function renderHomeRecent(){
+    const box=document.getElementById("homeRecent");
+    const rows=data.filter(inView).sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,5);
+    document.getElementById("homeRecentCount").textContent=rows.length?rows.length+"건":"";
+    box.innerHTML="";
+    if(!rows.length){ box.innerHTML='<div class="empty">이 기간에는 아직 기록이 없어요.</div>'; return; }
+    const g=document.createElement("div"); g.className="daygroup";
+    rows.forEach(r=>g.appendChild(makeRecordItem(r,false)));
+    box.appendChild(g);
+  }
+
   function renderList(){
     const box=document.getElementById("list");
     const rows=data.filter(inView).sort((a,b)=> b.date.localeCompare(a.date) || b.created-a.created);
     document.getElementById("listCount").textContent = rows.length ? rows.length+"건" : "";
-    if(!rows.length){ box.innerHTML='<div class="empty">아직 기록이 없어요. 위에서 첫 지출을 남겨보세요 👆</div>'; return; }
+    if(!rows.length){ box.innerHTML='<div class="empty">아직 기록이 없어요. 아래 + 버튼으로 첫 기록을 남겨보세요.</div>'; return; }
     const byDay={};
     rows.forEach(r=>{ (byDay[r.date]=byDay[r.date]||[]).push(r); });
     box.innerHTML="";
@@ -469,35 +714,19 @@
       const parts=[]; if(dayExp) parts.push("지출 "+won(dayExp)); if(dayInc) parts.push("수입 "+won(dayInc));
       g.innerHTML=`<div class="dh"><span class="d">${dObj.getMonth()+1}/${dObj.getDate()} (${wd})</span><span class="s">${parts.join(" · ")}</span></div>`;
       items.forEach(r=>{
-        const el=document.createElement("div"); el.className="item"+(r.id===editingId?" editing":"");
-        el.title="눌러서 수정";
-        const catLabel=r.cats.map(c=>`${EMO[c]||"📦"} ${escapeHtml(c)}`).join(" · ");
-        el.innerHTML=`
-          <div class="emoji">${EMO[r.cats[0]]||"📦"}</div>
-          <div class="meta"><div class="c">${catLabel}</div>${r.memo?`<div class="m">${escapeHtml(r.memo)}</div>`:""}</div>
-          <div class="amt ${r.type}">${r.type==="income"?"+":"-"}${won(r.amount)}</div>
-          <button class="del" title="삭제">✕</button>`;
-        el.querySelector(".del").onclick=(e)=>{
-          e.stopPropagation();
-          const desc=`${r.date} · ${r.type==="income"?"수입":"지출"} ${won(r.amount)} · ${r.cats.join(", ")}${r.memo?` (${r.memo})`:""}`;
-          if(confirm(`이 기록을 삭제할까요? 휴지통으로 이동돼요.\n${desc}`)) del(r.id);
-        };
-        el.onclick=()=>{ startEdit(r); }; // 아이템(아이콘 포함) 아무 곳이나 누르면 수정
-        g.appendChild(el);
+        g.appendChild(makeRecordItem(r,true));
       });
       box.appendChild(g);
     });
   }
 
-  function renderStats(){
-    const box=document.getElementById("stats");
+  function calculateStats(from,to){
     const map={}; let total=0;
     // 분류가 여러 개면 각 분류에 전체 금액을 반영(중복 집계) → 데이트에 얼마 썼나 등을 볼 수 있게.
     // total은 기록당 1회만 더해 실제 월 지출과 일치. 그래서 분류 비율 합이 100%를 넘을 수 있음.
     // N빵 정산: 지출 분류가 달린 수입(예: 식비 수입)은 그 분류와 합계에서 차감 → 순지출 기준.
-    const [f,t]=statRange(); // 위 내역 보기와 독립적인 통계 기간
     data.forEach(r=>{
-      if(r.date<f || r.date>t) return;
+      if(r.date<from || r.date>to) return;
       if(r.type==="expense"){ r.cats.forEach(c=>{ map[c]=(map[c]||0)+r.amount; }); total+=r.amount; }
       else {
         const netCats=r.cats.filter(c=>NET_CATS.has(c));
@@ -505,13 +734,15 @@
       }
     });
     total=Math.max(0,total);
-    document.getElementById("statTotal").textContent = statLabel()+(total? " · 합계 "+won(total):"");
-    document.getElementById("statSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active", x.dataset.m===statMode));
-    const rows=Object.entries(map).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-    if(!rows.length){ box.innerHTML='<div class="empty">이 기간 지출이 없어요.</div>'; return; }
-    const max=rows[0][1];
+    return {total,rows:Object.entries(map).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])};
+  }
+
+  function renderStatRows(box,rows,total,limit){
+    const shown=limit?rows.slice(0,limit):rows;
+    if(!shown.length){ box.innerHTML='<div class="empty">이 기간 지출이 없어요.</div>'; return; }
+    const max=shown[0][1];
     box.innerHTML="";
-    rows.forEach(([c,v])=>{
+    shown.forEach(([c,v])=>{
       const pct=total?Math.round(v/total*100):0;
       const w=max?Math.max(4,Math.round(v/max*100)):0;
       const row=document.createElement("div"); row.className="statrow";
@@ -521,6 +752,26 @@
         <div class="val"><b>${won(v)}</b> · ${pct}%</div>`;
       box.appendChild(row);
     });
+  }
+
+  function renderHomeStats(){
+    const [f,t]=periodRange();
+    const {total,rows}=calculateStats(f,t);
+    document.getElementById("homeStatTotal").textContent=total?"합계 "+won(total):"";
+    renderStatRows(document.getElementById("homeStats"),rows,total,3);
+  }
+
+  function renderStats(){
+    const [f,t]=statRange();
+    const {total,rows}=calculateStats(f,t);
+    document.getElementById("statTotal").textContent = statLabel()+(total? " · 합계 "+won(total):"");
+    document.getElementById("statSeg").querySelectorAll("button").forEach(x=>{
+      const active=x.dataset.m===statMode;
+      x.classList.toggle("active",active);
+      x.setAttribute("aria-pressed",active?"true":"false");
+    });
+    document.getElementById("spLabel").textContent=statLabel();
+    renderStatRows(document.getElementById("stats"),rows,total);
   }
 
   function renderTrend(){
@@ -580,28 +831,36 @@
     const amt=Math.round(Number(document.getElementById("fAmount").value.replace(/[^\d]/g,"")));
     const date=document.getElementById("fDate").value;
     const memo=document.getElementById("fMemo").value.trim();
-    if(!date){ toast("날짜를 선택하세요"); return; }
-    if(!amt || amt<=0){ toast("금액을 올바르게 입력하세요"); return; }
+    if(!date){ toast("날짜를 선택하세요"); document.getElementById("fDate").focus(); return; }
+    if(!amt || amt<=0){ toast("금액을 올바르게 입력하세요"); document.getElementById("fAmount").focus(); return; }
     const cats=Array.from(curCats);
-    if(!cats.length){ toast("분류를 하나 이상 선택하세요"); return; }
+    if(!cats.length){ toast("분류를 하나 이상 선택하세요"); document.querySelector("#catChips .chip")?.focus(); return; }
+    const before=snapshotState();
+    const wasEditing=!!editingId;
     if(editingId){
       const rec=data.find(r=>r.id===editingId);
       if(rec){ rec.type=curType; rec.cats=cats; rec.amount=amt; rec.memo=memo; rec.date=date; }
-      toast("수정됨 · "+won(amt));
     } else {
       data.push({ id:uid(), type:curType, cats, amount:amt, memo, date, created:Date.now() });
-      toast("기록됨 · "+won(amt));
     }
     save();
     resetForm();
     // 기록(또는 수정)한 날이 속한 기간으로 이동해 바로 보이게
     view=anchorForMode(new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, Number(date.slice(8,10))));
     renderAll();
+    toast((wasEditing?"수정됨 · ":"기록됨 · ")+won(amt),"실행 취소",()=>{
+      restoreSnapshot(before);
+      toast("저장 전 상태로 되돌렸어요");
+    });
   }
   function startEdit(rec){
     editingId=rec.id;
     curType=rec.type;
-    document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x.dataset.t===curType));
+    document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>{
+      const active=x.dataset.t===curType;
+      x.classList.toggle("active",active);
+      x.setAttribute("aria-pressed",active?"true":"false");
+    });
     curCats=new Set(rec.cats);
     renderChips();
     document.getElementById("fDate").value=rec.date;
@@ -610,13 +869,19 @@
     document.getElementById("addBtn").textContent="수정 완료";
     document.getElementById("cancelBtn").hidden=false;
     document.getElementById("editBanner").hidden=false;
+    document.getElementById("formTitle").textContent="기록 수정";
     renderList(); // 편집 중 항목 강조
+    navigate("add");
     window.scrollTo({top:0, behavior:"smooth"});
   }
   function resetForm(){
     editingId=null;
     curType="expense";
-    document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x.dataset.t==="expense"));
+    document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>{
+      const active=x.dataset.t==="expense";
+      x.classList.toggle("active",active);
+      x.setAttribute("aria-pressed",active?"true":"false");
+    });
     curCats=new Set([CATS.expense[0][0]]);
     renderChips();
     document.getElementById("fAmount").value="";
@@ -624,13 +889,30 @@
     document.getElementById("addBtn").textContent="추가하기";
     document.getElementById("cancelBtn").hidden=true;
     document.getElementById("editBanner").hidden=true;
+    document.getElementById("formTitle").textContent="새 기록";
+  }
+  function duplicateRecord(rec){
+    const before=snapshotState();
+    const copy={...rec,id:uid(),cats:[...rec.cats],created:Date.now()};
+    data.push(copy);
+    save(); renderAll();
+    toast("같은 내용으로 복제했어요","실행 취소",()=>{
+      restoreSnapshot(before);
+      toast("복제를 취소했어요");
+    });
   }
   function del(id){
+    const before=snapshotState();
     if(id===editingId) resetForm(); // 수정 중이던 항목을 지우면 폼도 초기화
     const rec=data.find(r=>r.id===id);
+    if(!rec) return;
     data=data.filter(r=>r.id!==id);
-    if(rec) trash.push({ ...rec, deletedAt: Date.now() });
-    save(); renderAll(); updateTrashBadge(); toast("휴지통으로 이동됨");
+    trash.push({ ...rec, cats:[...rec.cats], deletedAt: Date.now() });
+    save(); renderAll(); updateTrashBadge();
+    toast("휴지통으로 이동했어요","실행 취소",()=>{
+      restoreSnapshot(before);
+      toast("삭제를 취소했어요");
+    });
   }
 
   // ---- trash (휴지통) ----
@@ -696,9 +978,13 @@
     });
   }
   function renderStatsPage(){
-    document.getElementById("spSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active", x.dataset.m===spMode));
-    document.getElementById("spLabel").textContent = labelFor(spMode, spView);
-    const [f,t]=rangeFor(spMode, spView);
+    document.getElementById("statSeg").querySelectorAll("button").forEach(x=>{
+      const active=x.dataset.m===statMode;
+      x.classList.toggle("active",active);
+      x.setAttribute("aria-pressed",active?"true":"false");
+    });
+    document.getElementById("spLabel").textContent = labelFor(statMode, spView);
+    const [f,t]=rangeFor(statMode, spView);
     // 분류별 배분액: 여러 분류가 달린 기록은 금액을 1/N씩 나눠 반영 → 파이 합계가 실제 지출과 일치.
     // N빵 정산 수입(NET_CATS)은 같은 방식으로 차감. 원래 금액은 아래 '여러 분류로 쓴 지출'에서 보여줌.
     const map={}; let total=0;
@@ -736,7 +1022,7 @@
         html+=`<circle cx="100" cy="100" r="70" fill="none" stroke="${catColor(c)}" stroke-width="32" stroke-dasharray="${(frac*C).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off*C).toFixed(2)}" transform="rotate(-90 100 100)"/>`;
         off+=frac;
       });
-      html+=`<text x="100" y="92" text-anchor="middle" font-size="11" fill="var(--muted)">${escapeHtml(labelFor(spMode,spView))} 지출</text>`;
+      html+=`<text x="100" y="92" text-anchor="middle" font-size="11" fill="var(--muted)">${escapeHtml(labelFor(statMode,spView))} 지출</text>`;
       html+=`<text x="100" y="114" text-anchor="middle" font-size="17" font-weight="800" fill="var(--text)">${won(total)}</text>`;
       svg.innerHTML=html;
     }
@@ -767,16 +1053,28 @@
     }
   }
 
+  function navigate(name){
+    const next="#"+name;
+    if(location.hash===next) route();
+    else location.hash=next;
+  }
+
   function route(){
-    const isTrash = location.hash === "#trash";
-    const isStats = location.hash === "#stats";
-    document.getElementById("mainView").hidden = isTrash || isStats;
-    document.getElementById("trashView").hidden = !isTrash;
-    document.getElementById("statsView").hidden = !isStats;
-    document.querySelector(".month-nav").style.display = (isTrash||isStats) ? "none" : "flex";
-    document.getElementById("modeSeg").style.display = (isTrash||isStats) ? "none" : "flex";
-    if(isTrash) renderTrash();
-    if(isStats) renderStatsPage();
+    const valid=["home","records","add","stats","settings","trash"];
+    let name=location.hash.replace(/^#/,"");
+    if(!valid.includes(name)) name="home";
+    const ids={home:"homeView",records:"recordsView",add:"addView",stats:"statsView",settings:"settingsView",trash:"trashView"};
+    Object.entries(ids).forEach(([key,id])=>{ document.getElementById(id).hidden=key!==name; });
+    document.getElementById("periodToolbar").hidden=!["home","records"].includes(name);
+    const navName=name==="trash"?"settings":name;
+    document.querySelectorAll("#bottomNav .nav-btn").forEach(b=>{
+      const active=b.dataset.route===navName;
+      b.classList.toggle("active",active);
+      if(active) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
+    });
+    if(name==="trash") renderTrash();
+    if(name==="stats"){ renderStats(); renderTrend(); renderStatsPage(); }
+    document.title=({home:"가계부",records:"내역 · 가계부",add:editingId?"기록 수정 · 가계부":"새 기록 · 가계부",stats:"통계 · 가계부",settings:"설정 · 가계부",trash:"휴지통 · 가계부"})[name];
     window.scrollTo(0,0);
   }
 
@@ -825,18 +1123,20 @@
   document.getElementById("typeSeg").querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
       curType=b.dataset.t;
-      document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));
+      document.getElementById("typeSeg").querySelectorAll("button").forEach(x=>{
+        const active=x===b;
+        x.classList.toggle("active",active);
+        x.setAttribute("aria-pressed",active?"true":"false");
+      });
       curCats=new Set([CATS[curType][0][0]]); renderChips();
     };
   });
-  document.getElementById("addBtn").onclick=add;
-  document.getElementById("fMemo").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
+  document.getElementById("entryForm").onsubmit=(e)=>{ e.preventDefault(); add(); };
   const fAmount=document.getElementById("fAmount");
   fAmount.addEventListener("input",()=>{ // 입력하는 대로 천 단위 콤마
     const digits=fAmount.value.replace(/[^\d]/g,"");
     fAmount.value = digits ? Number(digits).toLocaleString("ko-KR") : "";
   });
-  fAmount.addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
   function shiftView(dir){
     if(viewMode==="month") view=new Date(view.getFullYear(), view.getMonth()+dir, 1);
     else if(viewMode==="week") view=addDays(view, 7*dir);
@@ -845,9 +1145,16 @@
   }
   document.getElementById("prevM").onclick=()=>shiftView(-1);
   document.getElementById("nextM").onclick=()=>shiftView(1);
+  document.getElementById("todayBtn").onclick=()=>{ view=anchorForMode(new Date()); renderAll(); };
   // 월/주/일 보기 전환 — 보던 기간에 오늘이 포함되면 오늘 기준, 아니면 보던 기간 기준으로 전환
   const modeSeg=document.getElementById("modeSeg");
-  function paintMode(){ modeSeg.querySelectorAll("button").forEach(x=>x.classList.toggle("active", x.dataset.m===viewMode)); }
+  function paintMode(){
+    modeSeg.querySelectorAll("button").forEach(x=>{
+      const active=x.dataset.m===viewMode;
+      x.classList.toggle("active",active);
+      x.setAttribute("aria-pressed",active?"true":"false");
+    });
+  }
   paintMode();
   modeSeg.querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
@@ -861,51 +1168,82 @@
       renderAll();
     };
   });
-  // 하단 통계 기간 전환 — 위 보기 모드와 독립 (예: 주별 내역을 보면서 월별 통계)
+  // 통계 기간 전환
   document.getElementById("statSeg").querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
       if(statMode===b.dataset.m) return;
+      const [f,t]=statRange(), todayS=ymd(new Date());
+      if(todayS>=f && todayS<=t) spView=new Date();
       statMode=b.dataset.m;
       try{ localStorage.setItem(STAT_KEY, statMode); }catch(e){}
-      renderStats(); renderTrend();
+      renderStats(); renderTrend(); renderStatsPage();
     };
   });
   document.getElementById("expJson").onclick=expJson;
   document.getElementById("expCsv").onclick=expCsv;
   document.getElementById("impJson").addEventListener("change",e=>{ if(e.target.files[0]) impJson(e.target.files[0]); e.target.value=""; });
+  document.querySelector('.tools label[role="button"]').onkeydown=(e)=>{
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); document.getElementById("impJson").click(); }
+  };
   document.getElementById("clearAll").onclick=()=>{
     if(confirm("모든 기록을 삭제할까요? 되돌릴 수 없습니다.\n먼저 JSON 백업을 권장해요.")){ data=[]; save(); renderAll(); toast("전체 삭제됨"); }
   };
-  document.getElementById("cancelBtn").onclick=()=>{ resetForm(); renderList(); }; // 목록의 편집 중 강조도 해제
+  document.getElementById("cancelBtn").onclick=()=>{ resetForm(); renderList(); navigate("records"); };
 
-  // 휴지통 페이지 이동/조작
-  document.getElementById("openTrash").onclick=()=>{ location.hash="#trash"; };
-  document.getElementById("openTrash2").onclick=()=>{ location.hash="#trash"; };
-  document.getElementById("backMain").onclick=()=>{ location.hash="#"; };
+  // 하단 탭과 화면 이동
+  document.querySelectorAll("#bottomNav .nav-btn").forEach(b=>{ b.onclick=()=>navigate(b.dataset.route); });
+  document.getElementById("brandHome").onclick=()=>navigate("home");
+  document.getElementById("homeAdd").onclick=()=>navigate("add");
+  document.getElementById("openRecords").onclick=()=>navigate("records");
+  document.getElementById("openTrash").onclick=()=>navigate("trash");
+  document.getElementById("openTrash2").onclick=()=>navigate("trash");
+  document.getElementById("backMain").onclick=()=>navigate("settings");
 
-  // 분류별 지출 페이지 (#stats)
-  document.getElementById("openStats").onclick=()=>{ spMode=statMode; spView=view; location.hash="#stats"; };
-  document.getElementById("backMain2").onclick=()=>{ location.hash="#"; };
-  document.getElementById("spSeg").querySelectorAll("button").forEach(b=>{
-    b.onclick=()=>{
-      if(spMode===b.dataset.m) return;
-      // 보던 기간에 오늘이 포함되면 오늘 기준으로 전환 (메인 모드 전환과 같은 규칙)
-      const [f,t]=rangeFor(spMode,spView), todayS=ymd(new Date());
-      if(todayS>=f && todayS<=t) spView=new Date();
-      spMode=b.dataset.m;
-      renderStatsPage();
-    };
-  });
+  document.getElementById("openStats").onclick=()=>{
+    statMode=viewMode; spView=new Date(view);
+    try{ localStorage.setItem(STAT_KEY,statMode); }catch(e){}
+    navigate("stats");
+  };
   function shiftStatsPage(dir){
-    const a=anchorFor(spMode,spView);
-    if(spMode==="month") spView=new Date(a.getFullYear(), a.getMonth()+dir, 1);
-    else if(spMode==="week") spView=addDays(a, 7*dir);
+    const a=anchorFor(statMode,spView);
+    if(statMode==="month") spView=new Date(a.getFullYear(), a.getMonth()+dir, 1);
+    else if(statMode==="week") spView=addDays(a, 7*dir);
     else spView=addDays(a, dir);
-    renderStatsPage();
+    renderStats(); renderTrend(); renderStatsPage();
   }
   document.getElementById("spPrev").onclick=()=>shiftStatsPage(-1);
   document.getElementById("spNext").onclick=()=>shiftStatsPage(1);
-  document.getElementById("spToday").onclick=()=>{ spView=new Date(); renderStatsPage(); };
+  document.getElementById("spToday").onclick=()=>{ spView=new Date(); renderStats(); renderTrend(); renderStatsPage(); };
+
+  // 기록 길게 누르기 작업 메뉴
+  document.getElementById("menuDuplicate").onclick=()=>{
+    const rec=data.find(r=>r.id===actionRecordId);
+    closeRecordMenu();
+    if(rec) duplicateRecord(rec);
+  };
+  document.getElementById("menuEdit").onclick=()=>{
+    const rec=data.find(r=>r.id===actionRecordId);
+    closeRecordMenu();
+    if(rec) startEdit(rec);
+  };
+  document.getElementById("menuDelete").onclick=()=>{
+    const id=actionRecordId;
+    closeRecordMenu();
+    if(id) del(id);
+  };
+  document.getElementById("menuCancel").onclick=closeRecordMenu;
+  document.getElementById("recordMenuBackdrop").onclick=(e)=>{ if(e.target===e.currentTarget) closeRecordMenu(); };
+  document.addEventListener("keydown",e=>{
+    const menu=document.getElementById("recordMenuBackdrop");
+    if(e.key==="Escape" && !menu.hidden){ closeRecordMenu(); return; }
+    if(e.key==="Tab" && !menu.hidden){
+      const buttons=[...menu.querySelectorAll("button")];
+      const first=buttons[0], last=buttons[buttons.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+  });
+
   document.getElementById("trashSelAll").onchange=(e)=>{
     trashSel = e.target.checked ? new Set(trash.map(t=>t.id)) : new Set();
     renderTrash();
@@ -926,7 +1264,12 @@
     return document.documentElement.getAttribute("data-theme")
       || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   }
-  function paintThemeIcon(){ document.getElementById("themeToggle").textContent = effectiveTheme()==="dark" ? "☀️" : "🌙"; }
+  function paintThemeIcon(){
+    const button=document.getElementById("themeToggle");
+    const dark=effectiveTheme()==="dark";
+    button.textContent=dark?"☀️":"🌙";
+    button.setAttribute("aria-label",dark?"라이트 모드로 전환":"다크 모드로 전환");
+  }
   paintThemeIcon();
   document.getElementById("themeToggle").onclick=()=>{
     const next = effectiveTheme()==="dark" ? "light" : "dark";
