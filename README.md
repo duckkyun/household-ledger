@@ -192,3 +192,10 @@
 - 모바일 하단 탭이 콘텐츠를 가리는 문제를 피하려고 본문 하단 여백과 iOS safe-area inset을 함께 적용함.
 - `type="button"`을 지정하지 않은 폼 버튼은 Enter 입력 시 의도하지 않은 제출을 일으킬 수 있어, 입력 폼의 버튼 역할을 명시적으로 분리함.
 - 실제 모바일 브라우저에서 확인할 때는 서비스 워커가 이전 HTML을 계속 제공할 수 있음. 캐시 버전을 올리고, 앱을 완전히 종료한 뒤 다시 실행해야 새 서비스 워커가 적용됨.
+
+### 20. GitHub에 푸시했는데 Firebase 앱은 그대로였던 문제
+
+- 휴대폰 홈 화면 앱은 GitHub Pages가 아니라 Firebase Hosting URL에서 설치했는데, 코드를 `main`에 푸시하기만 하고 Firebase에는 별도로 배포하지 않아 새 버전이 나타나지 않았음.
+- Git 저장소 푸시와 Firebase Hosting 배포는 서로 다른 과정이다. Firebase 앱을 갱신하려면 `firebase deploy --only hosting`까지 실행해야 함.
+- 배포 후에도 Firebase 기본 응답이 HTML·서비스 워커에 `Cache-Control: max-age=3600`을 주고 있어 iOS 홈 화면 앱이 이전 파일을 최대 한 시간 더 사용할 수 있었음.
+- `firebase.json`에서 `/`, `/index.html`, `/sw.js`를 `no-cache, no-store, must-revalidate`로 설정하고, 서비스 워커 등록에 `updateViaCache: "none"`과 `registration.update()`를 추가해 앱을 열 때 최신 버전을 즉시 확인하도록 보강함.
